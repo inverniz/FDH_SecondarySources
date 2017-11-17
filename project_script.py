@@ -19,14 +19,14 @@ def dandelion_ner(text):
      for item in data['annotations']:
          entity_type = ", ".join([w.split("/")[-1] for w in item['types']])
          entity_category = ""
-     if "categories" in item.keys():
-         entity_category = ", ".join([w.split("/")[-1] for w in item['categories']])
-         dbpedia = ""
-         wikipedia = ""
-     if "lod" in item.keys():
-         dbpedia = item['lod']['dbpedia']
-         wikipedia = item['lod']['wikipedia']
-         results.append({"type": entity_type, "category": entity_category, "relevance": item['confidence'], "word": item['spot'], "offset": item['start'], "identifier": item['uri'], "title": item['title'], "dbpedia": dbpedia, "wikipedia": wikipedia})
+         if "categories" in item.keys():
+             entity_category = ", ".join([w.split("/")[-1] for w in item['categories']])
+             dbpedia = ""
+             wikipedia = ""
+         if "lod" in item.keys():
+             dbpedia = item['lod']['dbpedia']
+             wikipedia = item['lod']['wikipedia']
+             results.append({"type": entity_type, "category": entity_category, "relevance": item['confidence'], "word": item['spot'], "offset": item['start'], "identifier": item['uri'], "title": item['title'], "dbpedia": dbpedia, "wikipedia": wikipedia})
  #print "id "+urllib.unquote(item['uri']).encode('latin-1')
      return results
  else:
@@ -59,6 +59,7 @@ def main():
         text = ""
         i = 0
         j = 0
+    
         # send max lines for request
         while j < nb_lines:
             while i < nb_lines and utf8len(text) < 3000:
