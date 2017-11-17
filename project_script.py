@@ -4,11 +4,11 @@ from pymongo import *
 
 # returns a list of results
 # documentation: https://dandelion.eu/docs/api/datatxt/nex/v1/#response
-def dandelion_ner(text):
+def dandelion_ner(text, token):
  #print "Dandelion"
  url = "https://api.dandelion.eu/datatxt/nex/v1"
- headers = {'text':text,'lang':'it','include':'types,lod,categories','epsilon':'0.3', 'token': 'ecd8d2b438484d92a593bf8274704cae'}
- r = requests.get(url,params=headers)
+ headers = {'text':text,'lang':'it','include':'types,lod,categories','epsilon':'0.3', 'token': token}
+ r = requests.post(url,data=headers)
  if r.status_code == requests.codes.ok:
      data = json.loads(r.text)
      if "error" in data.keys():
@@ -36,43 +36,43 @@ def utf8len(s):
     return len(s.encode('utf-8'))
   
 def main():
-    client = MongoClient('128.178.60.49', 27017)
-    client.linkedbooks_dev.authenticate('lb_pulse', '1243')
-    db = client.linkedbooks_dev
-    book_metadata = db.metadata.find({"type_document": "monograph"}, limit=1)
-    for metadata in book_metadata:
-        #print(metadata)
-        bid = metadata["bid"]
-        book = db.documents.find_one({"bid": bid})
-        pages = book["pages"]
-        fulltext = ""
-        for page in pages:
-            page = db.pages.find_one({"_id": page})
-            text = page["fulltext"]
-            fulltext = fulltext + text
-        fulltext = fulltext.replace("\n", "")
-        fulltext = fulltext.replace("\r", "")
-        fulltext = fulltext.replace("\xa0", "")
-        lines = fulltext.split(".")
-        
-        nb_lines = len(lines)
-        text = ""
-        i = 0
-        j = 0
-    
-        # send max lines for request
-        while j < nb_lines:
-            while i < nb_lines and utf8len(text) < 3000:
-                text = text + lines[i]
-                i += 1
-                print(i)
-            results = dandelion_ner(text)
-            print("Results:\n")
-            print(results)
-            j = i
-            text = ""
+	token_hakim = 'f3238f9b8e974df09b6814de9e9de532'
+	token_marion = 'ecd8d2b438484d92a593bf8274704cae'
+	token_used = token_marion
+	client = MongoClient('128.178.60.49', 27017)
+	client.linkedbooks_dev.authenticate('lb_pulse', '1243')
+	db = client.linkedbooks_dev
+	book_metadata = db.metadata.find({"type_document": "monograph"}, limit=1)
+	for metadata in book_metadata:
+		bid = metadata["bid"]
+		book = db.documents.find_one({"bid": bid})
+		pages = book["pages"]
+		fulltext = ""
+		for page in pages:
+			page = db.pages.find_one({"_id": page})
+			text = page["fulltext"]
+			fulltext = fulltext + text
+		fulltext = fulltext.replace("\n", "")
+		fulltext = fulltext.replace("\r", "")
+		fulltext = fulltext.replace("\xa0", "")
+		lines = fulltext.split(".")
+		print("fulltext length:" + str(len(fulltext)))
+		nb_lines = len(lines)
+		text = ""
+		i = 0
+		j = 0
+		#NOTE: in the end this is useful only if a book has size > 1 MiB. Otherwise send directly fulltext.
+		while j < nb_lines:
+			while i < nb_lines and utf8len(text) < 1000000:
+				print("length:" + str(utf8len(text)))
+				text = text + "." + lines[i]
+				i += 1
+			results = dandelion_ner(text, token_used)
+			print("Results:\n")
+			print(results)
+			j = i
+			text = ""
     
         
 if __name__ == "__main__":
     main()
-
