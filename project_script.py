@@ -7,7 +7,7 @@ from pymongo import *
 def dandelion_ner(text):
  #print "Dandelion"
  url = "https://api.dandelion.eu/datatxt/nex/v1"
- headers = {'text':text,'lang':'it','include':'types,lod,categories','epsilon':'0.3', 'token': 'f3238f9b8e974df09b6814de9e9de532'}
+ headers = {'text':text,'lang':'it','include':'types,lod,categories','epsilon':'0.3', 'token': 'ecd8d2b438484d92a593bf8274704cae'}
  r = requests.get(url,params=headers)
  if r.status_code == requests.codes.ok:
      data = json.loads(r.text)
