@@ -41,9 +41,10 @@ def utf8len(s):
 def clean_text(text):
 	text = text.replace("\n", "")
 	text = text.replace("\r", "")
-	text = text.replace("\xa0", "")
+	text = text.replace("\xa0", " ")
 	return text
-	
+
+#connect to databases	
 def connect():
 	client = MongoClient('128.178.60.49', 27017)
 	
@@ -160,7 +161,7 @@ def write_book(results, metadata, pulses_id, output_db):
 	return True
 	
 def process_books(input_db, output_db, token_used):
-	book_metadata = input_db.metadata.find({"type_document": "monograph"}, limit=1)
+	book_metadata = input_db.metadata.find({"type_document": "monograph"}, limit=10)
 	
 	for metadata in book_metadata:
 		bid = metadata["bid"]
@@ -195,7 +196,7 @@ def process_books(input_db, output_db, token_used):
 			while j < nb_lines:
 				while i < nb_lines and utf8len(text) < 1000000:
 					print("length:" + str(utf8len(text)))
-					text = lines
+					text = text + lines[i]
 					i += 1
 				print(text)
 				results = dandelion_ner(text, token_used)
