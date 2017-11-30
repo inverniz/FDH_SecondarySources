@@ -63,7 +63,7 @@ def scan_pages(input_db, entity, pages):
 		page = input_db.pages.find_one({"_id": page_id})
 		text = page["fulltext"]
 		if entity_spot in text:
-			page_number = page["printed_page_number"][0]
+			page_number = int(page["printed_page_number"][0])
 			return page_number+1
 	
 	return -1
@@ -101,8 +101,8 @@ def write_pulse_type1_articles(entity, title, author, journal_title, volume, pag
 		authors = authors + " and " + author[i]
 
 	
-	pulse = entity_label + " (" + wikipedia_resource + ") " + "is present in article '" + title + "' by " + authors + " at page " + str(page_number) + " in the volume " + volume + "of journal " + journal_title + "."
-	
+	pulse = entity_label + " (" + wikipedia_resource + ") " + "is present in article '" + title + "' by " + authors + " at page " + str(page_number) + " in the volume " + volume + " of journal '" + journal_title + "'."
+	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
@@ -127,7 +127,7 @@ def write_pulse_type2(entity1, entity1_page_number, entity2, title, author, page
 	page_difference = math.ceil(math.fabs(entity1_page_number- entity2_page_number))
 	
 	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  " and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + " are " + str(page_difference) + " pages distant in the book '" + title + "' by " + author + "." 
-	
+	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 2, 
 	"pulse": pulse, 
@@ -160,8 +160,8 @@ def write_pulse_type2_articles(entity1, entity1_page_number, entity2, title, aut
 	
 	page_difference = math.ceil(math.fabs(entity1_page_number- entity2_page_number))
 	
-	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  " and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + " are " + str(page_difference) + " pages distant in the article " + title + " by " + authors + "present in volume " + volume + "of journal " + journal_title + "." 
-	
+	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  " and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + " are " + str(page_difference) + " pages distant in the article '" + title + "' by " + authors + " present in volume " + volume + " of journal '" + journal_title + "'." 
+	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 2, 
 	"pulse": pulse, 
@@ -265,11 +265,11 @@ def process_books(input_db, output_db, token_used):
 			
 		fulltext = clean_text(fulltext)
 		fulltext_length = len(fulltext)
-		print("fulltext length:" + str(len(fulltext)))
+		#print("fulltext length:" + str(len(fulltext)))
 		
 		if fulltext_length < 1000000:
 			results = dandelion_ner(text, token_used)
-			print("Results: " + str(results))
+			#print("Results: " + str(results))
 			#keep processing
 			pulses_id = write_pulses(results, metadata, pages, output_db, input_db, "book")
 			write_book(results, metadata, pulses_id, output_db)
@@ -283,10 +283,11 @@ def process_books(input_db, output_db, token_used):
 			
 			while j < nb_lines:
 				while i < nb_lines and utf8len(text) < 1000000:
-					print("length:" + str(utf8len(text)))
+					#print("length:" + str(utf8len(text)))
 					text = text + lines[i]
 					i += 1
-				print(text)
+				#print(text)
+				#
 				results = dandelion_ner(text, token_used)
 				print("Results: " + str(results))
 				#keep processing
@@ -334,11 +335,11 @@ def process_articles(input_db, output_db, token_used):
 
 		fulltext = clean_text(fulltext)
 		fulltext_length = len(fulltext)
-		print("fulltext length:" + str(len(fulltext)))
+		#print("fulltext length:" + str(len(fulltext)))
 
 		if fulltext_length < 1000000:
 			results = dandelion_ner(text, token_used)
-			print("Results: " + str(results))
+			#print("Results: " + str(results))
 			pulses_id = write_pulses(results, metadata, pages, output_db, input_db, "journal")
 			write_articles(results, metadata, pulses_id, output_db)
 		else:
@@ -350,12 +351,12 @@ def process_articles(input_db, output_db, token_used):
 
 			while j < nb_lines:
 				while i < nb_lines and utf8len(text) < 1000000:
-					print("length:" + str(utf8len(text)))
+					#print("length:" + str(utf8len(text)))
 					text = text + lines[i]
 					i += 1
-				print(text)
+				#print(text)
 				results = dandelion_ner(text, token_used)
-				print("Results: " + str(results))
+				#print("Results: " + str(results))
 				pulses_id = write_pulses(results, metadata, pages, output_db, input_db, "journal")
 				write_articles(results, metadata, pulses_id, output_db)
 				j = i
@@ -364,12 +365,12 @@ def process_articles(input_db, output_db, token_used):
 def main():
 	token_hakim = 'f3238f9b8e974df09b6814de9e9de532'
 	token_marion = 'ecd8d2b438484d92a593bf8274704cae'
-	token_used = token_hakim
+	token_used = token_marion
 	
 	input_db, output_db = connect()
 	
-	#process_books(input_db, output_db, token_used)
-	process_articles(input_db, output_db, token_marion)
+	process_books(input_db, output_db, token_used)
+	#process_articles(input_db, output_db, token_used)
 	
 		
 if __name__ == "__main__":
