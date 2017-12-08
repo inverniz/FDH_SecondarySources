@@ -102,7 +102,7 @@ def write_pulse_type1_articles(entity, title, author, journal_title, volume, pag
 
 	
 	pulse = entity_label + " (" + wikipedia_resource + ") " + "is present in article '" + title + "' by " + authors + " at page " + str(page_number) + " in the volume " + volume + " of journal '" + journal_title + "'."
-	print(pulse)
+	#print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
@@ -127,7 +127,7 @@ def write_pulse_type2(entity1, entity1_page_number, entity2, title, author, page
 	page_difference = math.ceil(math.fabs(entity1_page_number- entity2_page_number))
 	
 	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  " and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + " are " + str(page_difference) + " pages distant in the book '" + title + "' by " + author + "." 
-	print(pulse)
+	#print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 2, 
 	"pulse": pulse, 
@@ -249,7 +249,7 @@ def write_articles(results, metadata, pulses_id, output_db):
 	return True
 	
 def process_books(input_db, output_db, token_used):
-	book_metadata = input_db.metadata.find({"type_document": "monograph"}, limit=10)
+	book_metadata = input_db.metadata.find({"type_document": "monograph"}, limit=30)
 	
 	for metadata in book_metadata:
 		bid = metadata["bid"]
@@ -268,6 +268,7 @@ def process_books(input_db, output_db, token_used):
 		#print("fulltext length:" + str(len(fulltext)))
 		
 		if fulltext_length < 1000000:
+			print(fulltext_length)
 			results = dandelion_ner(text, token_used)
 			#print("Results: " + str(results))
 			#keep processing
@@ -278,24 +279,33 @@ def process_books(input_db, output_db, token_used):
 			nb_lines = len(lines)
 			
 			text = ""
+			previous_text = ""
 			i = 0
 			j = 0
 			
 			while j < nb_lines:
-				while i < nb_lines and utf8len(text) < 1000000:
+				while i < nb_lines and len(text) < 800000:
 					#print("length:" + str(utf8len(text)))
+					previous_text = text
 					text = text + lines[i]
 					i += 1
 				#print(text)
-				#
+				if len(text) < 800000:
+					j = i
+				else:
+					text = previous_text
+					#to take the last line that we didn't take
+					j = i - 1
+				print(len(text))
 				results = dandelion_ner(text, token_used)
 				print("Results: " + str(results))
 				#keep processing
 				pulses_id = write_pulses(results, metadata, pages, output_db, input_db, "book")
 				write_book(results, metadata, pulses_id, output_db)
+
 				
-				j = i
 				text = ""
+				previous_text = ""
 
 def process_articles(input_db, output_db, token_used):
 	articles = input_db.bibliodb_articles.find({})
