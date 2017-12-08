@@ -57,6 +57,27 @@ def clean_text(text):
 	text = text.replace("\xa0", " ")
 	return text
 
+def reformat_author(author):
+	name = author.replace(" ", "").split(",")
+	#to remove the date that are given with autor name
+	reformated = name[1].split("<")[0]+ " " + name[0]
+	return reformated
+
+def entity_to_hashtag(entity):
+	return "#" + entity.replace(" ", "")
+
+def authors_to_hashtag(authors):
+	auth = ""
+	for i in range(0, len(authors)):
+		auth = auth + entity_to_hashtag(reformat_author(authors[i])) + " "
+	return auth
+
+
+def title_to_hashtag(title):
+	t = title.replace(":", " ")
+	t_hashtag = t.replace(" ", "_")
+	return "#" + t_hashtag
+
 #connect to databases	
 def connect():
 	client = MongoClient('128.178.60.49', 27017)
@@ -85,12 +106,13 @@ def write_pulse_type1(entity, title, author, page_number, pages, output_db, inpu
 	entity_label = entity["label"]
 	entity_spot = entity["spot"]
 	wikipedia_resource = entity["wikipedia"]
+	auth = reformat_author(author)
 	
 	if page_number == -1:
 		page_number = scan_pages(input_db, entity, pages)
 	
-	pulse = entity_label + " (" + wikipedia_resource + ") " + "is present in book '" + title + "' by " + author + " at page " + str(page_number) + "."
-	
+	pulse = entity_label + " (" + wikipedia_resource + ") " + "is present in book '" + title + "' by " + auth + " at page " + str(page_number) + ". " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title) + " " + entity_to_hashtag(auth)
+	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
@@ -109,13 +131,13 @@ def write_pulse_type1_articles(entity, title, author, journal_title, volume, pag
 	if page_number == -1:
 		page_number = scan_pages(input_db, entity, pages)
 
-	authors = author[0]
+	authors = reformat_author(author[0])
 	for i in range(1, len(author)):
-		authors = authors + " and " + author[i]
+		authors = authors + " and " + reformat_author(author[i])
 
 	
-	pulse = entity_label + " (" + wikipedia_resource + ") " + "is present in article '" + title + "' by " + authors + " at page " + str(page_number) + " in the volume " + volume + " of journal '" + journal_title + "'."
-	#print(pulse)
+	pulse = entity_label + " (" + wikipedia_resource + ") " + "is present in article '" + title + "' by " + authors + " at page " + str(page_number) + " in the volume " + volume + " of journal '" + journal_title + "'. " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title)  + " " + authors_to_hashtag(author) + title_to_hashtag(journal_title)
+	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
@@ -138,8 +160,10 @@ def write_pulse_type2(entity1, entity1_page_number, entity2, title, author, page
 	entity2_page_number = scan_pages(input_db, entity2, pages)
 	
 	page_difference = math.ceil(math.fabs(entity1_page_number- entity2_page_number))
+
+	auth = reformat_author(author)
 	
-	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  "and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + "are " + str(page_difference) + " pages distant in the book '" + title + "' by " + author + "." 
+	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  "and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + "are " + str(page_difference) + " pages distant in the book '" + title + "' by " + auth + "." 
 	#print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 2, 
@@ -165,9 +189,9 @@ def write_pulse_type2_articles(entity1, entity1_page_number, entity2, title, aut
 	entity2_spot = entity2["spot"]
 	entity2_wikipedia_resource = entity2["wikipedia"]
 
-	authors = author[0]
+	authors = reformat_author(author[0])
 	for i in range(1, len(author)):
-		authors = authors + " and " + author[i]
+		authors = authors + " and " + reformat_author(author[i])
 	
 	entity2_page_number = scan_pages(input_db, entity2, pages)
 	
@@ -262,7 +286,7 @@ def write_articles(results, metadata, pulses_id, output_db):
 	return True
 	
 def process_books(input_db, output_db, token_used):
-	book_metadata = input_db.metadata.find({"type_document": "monograph"}, limit=30)
+	book_metadata = input_db.metadata.find({"type_document": "monograph"}, limit=2)
 	
 	for metadata in book_metadata:
 		bid = metadata["bid"]
@@ -393,9 +417,8 @@ def main():
 	input_db, output_db = connect()
 	
 	#process_books(input_db, output_db, token_used)
-	#process_articles(input_db, output_db, token_used)
+	process_articles(input_db, output_db, token_used)
 	wait = get_time_to_wait()
-	print(wait)
 	
 		
 if __name__ == "__main__":
