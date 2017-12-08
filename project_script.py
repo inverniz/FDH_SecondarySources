@@ -77,7 +77,7 @@ def reformat_author(author):
 	name = author.replace(" ", "").split(",")
 	#to remove the date that are given with autor name
 	reformated = name[1].split("<")[0]+ " " + name[0]
-	return reformated
+	return reformated.replace("-", "")
 
 def entity_to_hashtag(entity):
 	return "#" + entity.replace(" ", "")
@@ -87,7 +87,6 @@ def authors_to_hashtag(authors):
 	for i in range(0, len(authors)):
 		auth = auth + entity_to_hashtag(reformat_author(authors[i])) + " "
 	return auth
-
 
 def title_to_hashtag(title):
 	t = title.replace(":", " ")
@@ -128,7 +127,7 @@ def write_pulse_type1(entity, title, author, page_number, pages, output_db, inpu
 		page_number = scan_pages(input_db, entity, pages)
 	
 	pulse = entity_label + " (" + wikipedia_resource + ") " + "is present in book '" + title + "' by " + auth + " at page " + str(page_number) + ". " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title) + " " + entity_to_hashtag(auth)
-	print(pulse)
+	#print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
@@ -153,7 +152,7 @@ def write_pulse_type1_articles(entity, title, author, journal_title, volume, pag
 
 	
 	pulse = entity_label + " (" + wikipedia_resource + ") " + "is present in article '" + title + "' by " + authors + " at page " + str(page_number) + " in the volume " + volume + " of journal '" + journal_title + "'. " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title)  + " " + authors_to_hashtag(author) + title_to_hashtag(journal_title)
-	print(pulse)
+	#print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
@@ -214,6 +213,68 @@ def write_pulse_type2_articles(entity1, entity1_page_number, entity2, title, aut
 	page_difference = math.ceil(math.fabs(entity1_page_number- entity2_page_number))
 	
 	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  "and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + "are " + str(page_difference) + " pages distant in the article '" + title + "' by " + authors + " present in volume " + volume + " of journal '" + journal_title + "'." 
+	#print(pulse)
+	#actual writing of the pulse
+	pulse_id = output_db.pulses.insert({"type": 2, 
+	"pulse": pulse, 
+	"entity1_name": entity1_label, 
+	"entity1_page_number": entity1_page_number, 
+	"entity1_wikipedia_resource": entity1_wikipedia_resource,
+	"reference1": entity1_spot,
+	"entity2_name": entity2_label, 
+	"entity2_page_number": entity2_page_number, 
+	"entity2_wikipedia_resource": entity2_wikipedia_resource,
+	"reference2": entity2_spot,
+	})
+	
+	return pulse_id, entity2_page_number
+
+def write_pulse_copresence(entity1, entity1_page_number, entity2, title, pages, output_db, input_db):
+	entity1_label = entity1["label"]
+	entity1_spot = entity1["spot"]
+	entity1_wikipedia_resource = entity1["wikipedia"]
+	
+	entity2_label = entity2["label"]
+	entity2_spot = entity2["spot"]
+	entity2_wikipedia_resource = entity2["wikipedia"]
+	
+	entity2_page_number = scan_pages(input_db, entity2, pages)
+	
+	page_difference = math.ceil(math.fabs(entity1_page_number- entity2_page_number))
+
+	if page_difference == 0:
+	
+		pulse = "#copresence " + entity_to_hashtag(entity1_label) + " " + entity_to_hashtag(entity2_label) + " " + title_to_hashtag(title) + "_p" + str(entity1_page_number)
+		print(pulse)
+		#actual writing of the pulse
+		pulse_id = output_db.pulses.insert({"type": 2, 
+		"pulse": pulse, 
+		"entity1_name": entity1_label, 
+		"entity1_page_number": entity1_page_number, 
+		"entity1_wikipedia_resource": entity1_wikipedia_resource,
+		"reference1": entity1_spot,
+		"entity2_name": entity2_label, 
+		"entity2_page_number": entity2_page_number, 
+		"entity2_wikipedia_resource": entity2_wikipedia_resource,
+		"reference2": entity2_spot,
+		})
+	
+		return pulse_id, entity2_page_number
+	else :
+		return "", 0
+
+def write_pulse_copresence_articles(entity1, entity1_page_number, entity2, title, pages, output_db, input_db):
+	entity1_label = entity1["label"]
+	entity1_spot = entity1["spot"]
+	entity1_wikipedia_resource = entity1["wikipedia"]
+	
+	entity2_label = entity2["label"]
+	entity2_spot = entity2["spot"]
+	entity2_wikipedia_resource = entity2["wikipedia"]
+	
+	entity2_page_number = scan_pages(input_db, entity2, pages)
+
+	pulse = "#copresence " + entity_to_hashtag(entity1_label) + " " + entity_to_hashtag(entity2_label) + " " + title_to_hashtag(title)
 	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 2, 
@@ -229,15 +290,20 @@ def write_pulse_type2_articles(entity1, entity1_page_number, entity2, title, aut
 	})
 	
 	return pulse_id, entity2_page_number
+
+
+
 	
 def write_pulses(results, metadata, pages, output_db, input_db, type):
 	
 	pulses_id = list()
 	pulse_id1 = -1
 	pulse_id2 = -1
+	pulse_id3 = -1
 	numb_entities = len(results)
 	page_number_entity_1 = -1
 	page_number_entity_2 = -1
+	page_number_entity_3 = -1
 
 	if type == "book":
 		author = metadata["creator"]
@@ -252,8 +318,11 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 			if index < numb_entities-1:
 				entity_2 = results[index+1]
 				pulse_id2, page_number_entity_2  = write_pulse_type2(entity_1, page_number_entity_1, entity_2, title, author, pages, output_db, input_db)
+				pulse_id3, page_number_entity_3 = write_pulse_copresence(entity_1, page_number_entity_1, entity_2, title, pages, output_db, input_db)
 			pulses_id.append(pulse_id1)
 			pulses_id.append(pulse_id2)
+			if(pulse_id3 != ""):
+				pulses_id.append(pulse_id3)
 	else:
 		author = metadata["authors"]
 		title = metadata["title"]
@@ -269,8 +338,10 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 			if index < numb_entities-1:
 				entity_2 = results[index+1]
 				pulse_id2, page_number_entity_2  = write_pulse_type2_articles(entity_1, page_number_entity_1, entity_2, title, author, journal_title, volume, pages, output_db, input_db)
+				pulse_id3, page_number_entity_3 = write_pulse_copresence_articles(entity_1, page_number_entity_1, entity_2, title, pages, output_db, input_db)
 			pulses_id.append(pulse_id1)
 			pulses_id.append(pulse_id2)
+			pulses_id.append(pulse_id3)
 	
 	return pulses_id
 	
@@ -302,7 +373,7 @@ def write_articles(results, metadata, pulses_id, output_db):
 	return True
 	
 def process_books(input_db, output_db, token_used):
-	book_metadata = input_db.metadata.find({"type_document": "monograph"}, limit=2)
+	book_metadata = input_db.metadata.find({"type_document": "monograph"}, limit=5)
 	
 	for metadata in book_metadata:
 		bid = metadata["bid"]
@@ -432,7 +503,7 @@ def main():
 	
 	input_db, output_db = connect()
 	
-	process_books(input_db, output_db, token_used)
+	#process_books(input_db, output_db, token_used)
 	process_articles(input_db, output_db, token_used)
 	
 		
