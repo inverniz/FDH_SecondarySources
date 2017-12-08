@@ -39,7 +39,7 @@ def utf8len(s):
 	return len(s.encode('utf-8'))
 
 def get_time_to_wait():
-	date = datetime.datetime
+	date = datetime.datetime.now()
 	hours = date.hour * 3600
 	minutes = date.minute * 60
 	seconds = date.second
