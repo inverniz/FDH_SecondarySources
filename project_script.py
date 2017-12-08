@@ -9,7 +9,12 @@ def dandelion_ner(text, token):
  #print "Dandelion"
  url = "https://api.dandelion.eu/datatxt/nex/v1"
  headers = {'text':text,'lang':'it','include':'types,lod,categories','epsilon':'0.3', 'token': token}
- r = requests.post(url,data=headers)
+ r = requests.post(url,data=headers, timeout=300)
+ #print(r.headers)
+ if r.headers["content-type"] == "text/html":
+     empty_result = list()
+     return empty_result
+ 
  if r.status_code == requests.codes.ok:
 	 data = json.loads(r.text)
 	 if "error" in data.keys():
@@ -33,8 +38,9 @@ def dandelion_ner(text, token):
  #print "id "+urllib.unquote(item['uri']).encode('latin-1')
 	 return results
  else:
-  return "Web error: "+str(r.status_code)
-
+	 data = json.loads(r.text)
+	 if "error" in data.keys():
+		 return "API error. Status: "+str(data['status'])+" Code: "+data['code']+" Message: "+data['message']
 def utf8len(s):
 	return len(s.encode('utf-8'))
 
@@ -278,10 +284,10 @@ def process_books(input_db, output_db, token_used):
 			
 		fulltext = clean_text(fulltext)
 		fulltext_length = len(fulltext)
-		#print("fulltext length:" + str(len(fulltext)))
+		print("fulltext length:" + str(len(fulltext)))
 		
-		if fulltext_length < 1000000:
-			print(fulltext_length)
+		if fulltext_length < 950000:
+			#print(fulltext_length)
 			results = dandelion_ner(text, token_used)
 			#print("Results: " + str(results))
 			#keep processing
@@ -297,21 +303,21 @@ def process_books(input_db, output_db, token_used):
 			j = 0
 			
 			while j < nb_lines:
-				while i < nb_lines and len(text) < 1000000:
+				while i < nb_lines and len(text) < 950000:
 					#print("length:" + str(utf8len(text)))
 					previous_text = text
-					text = text + lines[i]
+					text = text + ". " + lines[i]
 					i += 1
 				#print(text)
-				if len(text) < 1000000:
+				if len(text) < 950000:
 					j = i
 				else:
 					text = previous_text
 					#to take the last line that we didn't take
 					j = i - 1
-				print(len(text))
+				print("intermediary length: " + str(len(text)))
 				results = dandelion_ner(text, token_used)
-				print("Results: " + str(results))
+				#print("Results: " + str(results))
 				#keep processing
 				pulses_id = write_pulses(results, metadata, pages, output_db, input_db, "book")
 				write_book(results, metadata, pulses_id, output_db)
@@ -392,10 +398,10 @@ def main():
 	
 	input_db, output_db = connect()
 	
-	#process_books(input_db, output_db, token_used)
+	process_books(input_db, output_db, token_used)
 	#process_articles(input_db, output_db, token_used)
-	wait = get_time_to_wait()
-	print(wait)
+	#wait = get_time_to_wait()
+	#print(wait)
 	
 		
 if __name__ == "__main__":
