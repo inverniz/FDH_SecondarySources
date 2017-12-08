@@ -1,7 +1,19 @@
-import requests, urllib, string, math, json, datetime
+import requests, urllib, string, math, json, datetime, time
 import pymongo
 from pymongo import *
 
+def get_time_to_wait():
+	date = datetime.datetime.now()
+	hours = date.hour * 3600
+	minutes = date.minute * 60
+	seconds = date.second
+
+	total_sec = hours + minutes + seconds
+	#print(hours, minutes, seconds, total_sec)
+	total_time = 24 * 3600
+	wait = total_time - total_sec + 10
+	return wait
+	
 # returns a list of results
 # documentation: https://dandelion.eu/docs/api/datatxt/nex/v1/#response
 # this function is a modified version of the original one from Giovanni Colavizza.
@@ -12,11 +24,9 @@ def dandelion_ner(text, token):
  r = requests.post(url,data=headers)
  
  #print(r.headers)
+ #print(r.text)
  
- if r.headers["X-DL-units-left"] < 1:
-	 wait = get_time_to_wait
-	 time.sleep(wait)
-	 
+ 	 
  if r.headers["content-type"] == "text/html":
      empty_result = list()
      return empty_result
@@ -46,23 +56,16 @@ def dandelion_ner(text, token):
  else:
 	 data = json.loads(r.text)
 	 if "error" in data.keys():
-		 return "API error. Status: "+str(data['status'])+" Code: "+data['code']+" Message: "+data['message']
+		 print("API error. Status: "+str(data['status'])+" Code: "+data['code']+" Message: "+data['message'])
+		 if (data["message"] == "no units left") and (data['status'] == 401):
+			 wait = get_time_to_wait()
+			 print("on attend pour " + str(wait) + " seconds")
+			 time.sleep(wait)
+		 empty_result = list()
+		 return empty_result
 		 
 def utf8len(s):
 	return len(s.encode('utf-8'))
-
-def get_time_to_wait():
-	date = datetime.datetime.now()
-	hours = date.hour * 3600
-	minutes = date.minute * 60
-	seconds = date.second
-
-	total_sec = hours + minutes + seconds
-	print(hours, minutes, seconds, total_sec)
-	total_time = 24 * 3600
-	wait = total_time - total_sec + 10
-	return wait
-
 
 def clean_text(text):
 	text = text.replace("\n", "")
