@@ -400,7 +400,7 @@ def process_articles(input_db, output_db, token_used):
 		fulltext_length = len(fulltext)
 		#print("fulltext length:" + str(len(fulltext)))
 
-		if fulltext_length < 1000000:
+		if fulltext_length < 950000:
 			results = dandelion_ner(text, token_used)
 			#print("Results: " + str(results))
 			pulses_id = write_pulses(results, metadata, pages, output_db, input_db, "journal")
@@ -413,7 +413,7 @@ def process_articles(input_db, output_db, token_used):
 			j = 0
 
 			while j < nb_lines:
-				while i < nb_lines and utf8len(text) < 1000000:
+				while i < nb_lines and utf8len(text) < 950000:
 					#print("length:" + str(utf8len(text)))
 					text = text + lines[i]
 					i += 1
