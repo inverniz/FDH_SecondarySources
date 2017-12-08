@@ -319,6 +319,26 @@ def write_pulses_mention(entity, title, page_number, pages, output_db, input_db)
 		page_number = scan_pages(input_db, entity, pages)
 	
 	pulse = "#mention " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title)
+	#print(pulse)
+	#actual writing of the pulse
+	pulse_id = output_db.pulses.insert({"type": 1, 
+	"pulse": pulse, 
+	"entity_name": entity_label, 
+	"reference": entity_spot,
+	"page_number": page_number, 
+	"wikipedia_resource": wikipedia_resource})
+	
+	return pulse_id, page_number
+
+def write_pulses_eq(entity, title, page_number, pages, output_db, input_db):
+	entity_label = entity["label"]
+	entity_spot = entity["spot"]
+	wikipedia_resource = entity["wikipedia"]
+	
+	if page_number == -1:
+		page_number = scan_pages(input_db, entity, pages)
+	
+	pulse = "#eq " + entity_to_hashtag(entity_label) + " " + wikipedia_resource
 	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
@@ -338,10 +358,13 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 	pulse_id2 = -1
 	pulse_id3 = -1
 	pulse_id4 = -1
+	pulse_id5 = -1
+
 	numb_entities = len(results)
 	page_number_entity_1 = -1
 	page_number_entity_2 = -1
 	page_number_entity_3 = -1
+	page_number_entity_4 = -1
 	page_number_entity_4 = -1
 
 	if type == "book":
@@ -353,9 +376,11 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 			if page_number_entity_2 != -1:
 				pulse_id1, page_number_entity_1 = write_pulse_type1(entity_1, title, author, page_number_entity_2, pages, output_db, input_db)
 				pulse_id4, page_number_entity_4 = write_pulses_mention(entity_1, title, page_number_entity_2, pages, output_db, input_db)
+				pulse_id5, page_number_entity_5 = write_pulses_eq(entity_1, title, page_number_entity_2, pages, output_db, input_db)
 			else:
 				pulse_id1, page_number_entity_1 = write_pulse_type1(entity_1, title, author, -1, pages, output_db, input_db)
 				pulse_id4, page_number_entity_4 = write_pulses_mention(entity_1, title, -1, pages, output_db, input_db)
+				pulse_id5, page_number_entity_5 = write_pulses_eq(entity_1, title, -1, pages, output_db, input_db)
 			if index < numb_entities-1:
 				entity_2 = results[index+1]
 				pulse_id2, page_number_entity_2  = write_pulse_type2(entity_1, page_number_entity_1, entity_2, title, author, pages, output_db, input_db)
@@ -365,6 +390,7 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 			if(pulse_id3 != ""):
 				pulses_id.append(pulse_id3)
 			pulses_id.append(pulse_id4)
+			pulses_id.append(pulse_id5)
 	else:
 		author = metadata["authors"]
 		title = metadata["title"]
@@ -376,9 +402,13 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 			if page_number_entity_2 != -1:
 				pulse_id1, page_number_entity_1 = write_pulse_type1_articles(entity_1, title, author, journal_title, volume, page_number_entity_2, pages, output_db, input_db)
 				pulse_id4, page_number_entity_4 = write_pulses_mention(entity_1, title, page_number_entity_2, pages, output_db, input_db)
+				pulse_id5, page_number_entity_5 = write_pulses_eq(entity_1, title, page_number_entity_2, pages, output_db, input_db)
+
 			else:
 				pulse_id1, page_number_entity_1 = write_pulse_type1_articles(entity_1, title, author, journal_title, volume, -1, pages, output_db, input_db)
 				pulse_id4, page_number_entity_4 = write_pulses_mention(entity_1, title, -1, pages, output_db, input_db)
+				pulse_id5, page_number_entity_5 = write_pulses_eq(entity_1, title, -1, pages, output_db, input_db)
+
 
 			if index < numb_entities-1:
 				entity_2 = results[index+1]
@@ -388,6 +418,8 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 			pulses_id.append(pulse_id2)
 			pulses_id.append(pulse_id3)
 			pulses_id.append(pulse_id4)
+			pulses_id.append(pulse_id5)
+
 	
 	return pulses_id
 	
