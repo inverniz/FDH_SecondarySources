@@ -1,4 +1,4 @@
-import requests, urllib, string, math, json
+import requests, urllib, string, math, json, datetime
 import pymongo
 from pymongo import *
 
@@ -37,6 +37,19 @@ def dandelion_ner(text, token):
 
 def utf8len(s):
 	return len(s.encode('utf-8'))
+
+def get_time_to_wait():
+	date = datetime.datetime
+	hours = date.hour * 3600
+	minutes = date.minute * 60
+	seconds = date.second
+
+	total_sec = hours + minutes + seconds
+	print(hours, minutes, seconds, total_sec)
+	total_time = 24 * 3600
+	wait = total_time - total_sec
+	return wait
+
 
 def clean_text(text):
 	text = text.replace("\n", "")
@@ -126,7 +139,7 @@ def write_pulse_type2(entity1, entity1_page_number, entity2, title, author, page
 	
 	page_difference = math.ceil(math.fabs(entity1_page_number- entity2_page_number))
 	
-	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  " and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + " are " + str(page_difference) + " pages distant in the book '" + title + "' by " + author + "." 
+	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  "and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + "are " + str(page_difference) + " pages distant in the book '" + title + "' by " + author + "." 
 	#print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 2, 
@@ -160,7 +173,7 @@ def write_pulse_type2_articles(entity1, entity1_page_number, entity2, title, aut
 	
 	page_difference = math.ceil(math.fabs(entity1_page_number- entity2_page_number))
 	
-	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  " and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + " are " + str(page_difference) + " pages distant in the article '" + title + "' by " + authors + " present in volume " + volume + " of journal '" + journal_title + "'." 
+	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  "and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + "are " + str(page_difference) + " pages distant in the article '" + title + "' by " + authors + " present in volume " + volume + " of journal '" + journal_title + "'." 
 	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 2, 
@@ -284,13 +297,13 @@ def process_books(input_db, output_db, token_used):
 			j = 0
 			
 			while j < nb_lines:
-				while i < nb_lines and len(text) < 800000:
+				while i < nb_lines and len(text) < 1000000:
 					#print("length:" + str(utf8len(text)))
 					previous_text = text
 					text = text + lines[i]
 					i += 1
 				#print(text)
-				if len(text) < 800000:
+				if len(text) < 1000000:
 					j = i
 				else:
 					text = previous_text
@@ -375,12 +388,14 @@ def process_articles(input_db, output_db, token_used):
 def main():
 	token_hakim = 'f3238f9b8e974df09b6814de9e9de532'
 	token_marion = 'ecd8d2b438484d92a593bf8274704cae'
-	token_used = token_marion
+	token_used = token_hakim
 	
 	input_db, output_db = connect()
 	
-	process_books(input_db, output_db, token_used)
+	#process_books(input_db, output_db, token_used)
 	#process_articles(input_db, output_db, token_used)
+	wait = get_time_to_wait()
+	print(wait)
 	
 		
 if __name__ == "__main__":
