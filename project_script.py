@@ -80,7 +80,7 @@ def reformat_author(author):
 	return reformated.replace("-", "")
 
 def entity_to_hashtag(entity):
-	return "#" + entity.replace(" ", "")
+	return "#" + entity.replace(" ", "").replace("-", "")
 
 def authors_to_hashtag(authors):
 	auth = ""
@@ -229,7 +229,7 @@ def write_pulse_type2_articles(entity1, entity1_page_number, entity2, title, aut
 	
 	return pulse_id, entity2_page_number
 
-def write_pulse_copresence(entity1, entity1_page_number, entity2, title, pages, output_db, input_db):
+def write_pulses_copresence(entity1, entity1_page_number, entity2, title, pages, output_db, input_db):
 	entity1_label = entity1["label"]
 	entity1_spot = entity1["spot"]
 	entity1_wikipedia_resource = entity1["wikipedia"]
@@ -245,7 +245,7 @@ def write_pulse_copresence(entity1, entity1_page_number, entity2, title, pages, 
 	if page_difference == 0:
 	
 		pulse = "#copresence " + entity_to_hashtag(entity1_label) + " " + entity_to_hashtag(entity2_label) + " " + title_to_hashtag(title) + "_p" + str(entity1_page_number)
-		print(pulse)
+		#print(pulse)
 		#actual writing of the pulse
 		pulse_id = output_db.pulses.insert({"type": 2, 
 		"pulse": pulse, 
@@ -263,7 +263,7 @@ def write_pulse_copresence(entity1, entity1_page_number, entity2, title, pages, 
 	else :
 		return "", 0
 
-def write_pulse_copresence_articles(entity1, entity1_page_number, entity2, title, pages, output_db, input_db):
+def write_pulses_copresence_articles(entity1, entity1_page_number, entity2, title, pages, output_db, input_db):
 	entity1_label = entity1["label"]
 	entity1_spot = entity1["spot"]
 	entity1_wikipedia_resource = entity1["wikipedia"]
@@ -275,7 +275,7 @@ def write_pulse_copresence_articles(entity1, entity1_page_number, entity2, title
 	entity2_page_number = scan_pages(input_db, entity2, pages)
 
 	pulse = "#copresence " + entity_to_hashtag(entity1_label) + " " + entity_to_hashtag(entity2_label) + " " + title_to_hashtag(title)
-	print(pulse)
+	#print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 2, 
 	"pulse": pulse, 
@@ -291,7 +291,44 @@ def write_pulse_copresence_articles(entity1, entity1_page_number, entity2, title
 	
 	return pulse_id, entity2_page_number
 
+def write_pulses_mention(entity, title, page_number, pages, output_db, input_db):
+	entity_label = entity["label"]
+	entity_spot = entity["spot"]
+	wikipedia_resource = entity["wikipedia"]
+	
+	if page_number == -1:
+		page_number = scan_pages(input_db, entity, pages)
+	
+	pulse = "#mention " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title) + "_p" + str(page_number)
+	#print(pulse)
+	pulse_id = output_db.pulses.insert({"type": 1, 
+	"pulse": pulse, 
+	"entity_name": entity_label, 
+	"reference": entity_spot,
+	"page_number": page_number, 
+	"wikipedia_resource": wikipedia_resource})
+	
+	return pulse_id, page_number
 
+def write_pulses_mention(entity, title, page_number, pages, output_db, input_db):
+	entity_label = entity["label"]
+	entity_spot = entity["spot"]
+	wikipedia_resource = entity["wikipedia"]
+	
+	if page_number == -1:
+		page_number = scan_pages(input_db, entity, pages)
+	
+	pulse = "#mention " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title)
+	print(pulse)
+	#actual writing of the pulse
+	pulse_id = output_db.pulses.insert({"type": 1, 
+	"pulse": pulse, 
+	"entity_name": entity_label, 
+	"reference": entity_spot,
+	"page_number": page_number, 
+	"wikipedia_resource": wikipedia_resource})
+	
+	return pulse_id, page_number
 
 	
 def write_pulses(results, metadata, pages, output_db, input_db, type):
@@ -300,10 +337,12 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 	pulse_id1 = -1
 	pulse_id2 = -1
 	pulse_id3 = -1
+	pulse_id4 = -1
 	numb_entities = len(results)
 	page_number_entity_1 = -1
 	page_number_entity_2 = -1
 	page_number_entity_3 = -1
+	page_number_entity_4 = -1
 
 	if type == "book":
 		author = metadata["creator"]
@@ -313,16 +352,19 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 			pulse_id1 = -1
 			if page_number_entity_2 != -1:
 				pulse_id1, page_number_entity_1 = write_pulse_type1(entity_1, title, author, page_number_entity_2, pages, output_db, input_db)
+				pulse_id4, page_number_entity_4 = write_pulses_mention(entity_1, title, page_number_entity_2, pages, output_db, input_db)
 			else:
 				pulse_id1, page_number_entity_1 = write_pulse_type1(entity_1, title, author, -1, pages, output_db, input_db)
+				pulse_id4, page_number_entity_4 = write_pulses_mention(entity_1, title, -1, pages, output_db, input_db)
 			if index < numb_entities-1:
 				entity_2 = results[index+1]
 				pulse_id2, page_number_entity_2  = write_pulse_type2(entity_1, page_number_entity_1, entity_2, title, author, pages, output_db, input_db)
-				pulse_id3, page_number_entity_3 = write_pulse_copresence(entity_1, page_number_entity_1, entity_2, title, pages, output_db, input_db)
+				pulse_id3, page_number_entity_3 = write_pulses_copresence(entity_1, page_number_entity_1, entity_2, title, pages, output_db, input_db)
 			pulses_id.append(pulse_id1)
 			pulses_id.append(pulse_id2)
 			if(pulse_id3 != ""):
 				pulses_id.append(pulse_id3)
+			pulses_id.append(pulse_id4)
 	else:
 		author = metadata["authors"]
 		title = metadata["title"]
@@ -333,15 +375,19 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 			pulse_id1 = -1
 			if page_number_entity_2 != -1:
 				pulse_id1, page_number_entity_1 = write_pulse_type1_articles(entity_1, title, author, journal_title, volume, page_number_entity_2, pages, output_db, input_db)
+				pulse_id4, page_number_entity_4 = write_pulses_mention(entity_1, title, page_number_entity_2, pages, output_db, input_db)
 			else:
 				pulse_id1, page_number_entity_1 = write_pulse_type1_articles(entity_1, title, author, journal_title, volume, -1, pages, output_db, input_db)
+				pulse_id4, page_number_entity_4 = write_pulses_mention(entity_1, title, -1, pages, output_db, input_db)
+
 			if index < numb_entities-1:
 				entity_2 = results[index+1]
 				pulse_id2, page_number_entity_2  = write_pulse_type2_articles(entity_1, page_number_entity_1, entity_2, title, author, journal_title, volume, pages, output_db, input_db)
-				pulse_id3, page_number_entity_3 = write_pulse_copresence_articles(entity_1, page_number_entity_1, entity_2, title, pages, output_db, input_db)
+				pulse_id3, page_number_entity_3 = write_pulses_copresence_articles(entity_1, page_number_entity_1, entity_2, title, pages, output_db, input_db)
 			pulses_id.append(pulse_id1)
 			pulses_id.append(pulse_id2)
 			pulses_id.append(pulse_id3)
+			pulses_id.append(pulse_id4)
 	
 	return pulses_id
 	
