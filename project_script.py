@@ -9,7 +9,6 @@ def get_time_to_wait():
 	seconds = date.second
 
 	total_sec = hours + minutes + seconds
-	#print(hours, minutes, seconds, total_sec)
 	total_time = 24 * 3600
 	wait = total_time - total_sec + 10
 	return wait
@@ -18,51 +17,48 @@ def get_time_to_wait():
 # documentation: https://dandelion.eu/docs/api/datatxt/nex/v1/#response
 # this function is a modified version of the original one from Giovanni Colavizza.
 def dandelion_ner(text, token):
- #print "Dandelion"
- url = "https://api.dandelion.eu/datatxt/nex/v1"
- headers = {'text':text,'lang':'it','include':'types,lod,categories','epsilon':'0.3', 'token': token}
- r = requests.post(url,data=headers)
- 
+	url = "https://api.dandelion.eu/datatxt/nex/v1"
+	headers = {'text':text,'lang':'it','include':'types,lod,categories','epsilon':'0.3', 'token': token}
+	r = requests.post(url,data=headers)
+
  #print(r.headers)
  #print(r.text)
- 
- 	 
- if r.headers["content-type"] == "text/html":
-     empty_result = list()
-     return empty_result
+	 
+	if r.headers["content-type"] == "text/html":
+		empty_result = list()
+		return empty_result
 
- if r.status_code == requests.codes.ok:
-	 data = json.loads(r.text)
-	 if "error" in data.keys():
-		 return "API error. Status: "+str(data['status'])+" Code: "+data['code']+" Message: "+data['message']
-	 results = list()
+	if r.status_code == requests.codes.ok:
+		data = json.loads(r.text)
+		if "error" in data.keys():
+			return "API error. Status: "+str(data['status'])+" Code: "+data['code']+" Message: "+data['message']
+		results = list()
 	 
  # all entity types are dbpedia.org/ontology entities
-	 for item in data['annotations']:
-		 entity_type = ", ".join([w.split("/")[-1] for w in item['types']])
-		 entity_label = item['label']
-		 entity_spot = item['spot']
-		 entity_category = ""
-		 if "categories" in item.keys():
-			 entity_category = ", ".join([w.split("/")[-1] for w in item['categories']])
-			 dbpedia = ""
-			 wikipedia = ""
-		 if "lod" in item.keys():
-			 dbpedia = item['lod']['dbpedia']
-			 wikipedia = item['lod']['wikipedia']
-			 results.append({"label": entity_label, "type": entity_type, "spot": entity_spot, "category": entity_category, "relevance": item['confidence'], "word": item['spot'], "offset": item['start'], "identifier": item['uri'], "title": item['title'], "dbpedia": dbpedia, "wikipedia": wikipedia})
- #print "id "+urllib.unquote(item['uri']).encode('latin-1')
-	 return results
- else:
-	 data = json.loads(r.text)
-	 if "error" in data.keys():
-		 print("API error. Status: "+str(data['status'])+" Code: "+data['code']+" Message: "+data['message'])
-		 if (data["message"] == "no units left") and (data['status'] == 401):
-			 wait = get_time_to_wait()
-			 print("on attend pour " + str(wait) + " seconds")
-			 time.sleep(wait)
-		 empty_result = list()
-		 return empty_result
+		for item in data['annotations']:
+			entity_type = ", ".join([w.split("/")[-1] for w in item['types']])
+			entity_label = item['label']
+			entity_spot = item['spot']
+			entity_category = ""
+			if "categories" in item.keys():
+				entity_category = ", ".join([w.split("/")[-1] for w in item['categories']])
+				dbpedia = ""
+				wikipedia = ""
+			if "lod" in item.keys():
+				dbpedia = item['lod']['dbpedia']
+				wikipedia = item['lod']['wikipedia']
+				results.append({"label": entity_label, "type": entity_type, "spot": entity_spot, "category": entity_category, "relevance": item['confidence'], "word": item['spot'], "offset": item['start'], "identifier": item['uri'], "title": item['title'], "dbpedia": dbpedia, "wikipedia": wikipedia})
+		return results
+	else:
+		data = json.loads(r.text)
+		if "error" in data.keys():
+			print("API error. Status: "+str(data['status'])+" Code: "+data['code']+" Message: "+data['message'])
+			if (data["message"] == "no units left") and (data['status'] == 401):
+				wait = get_time_to_wait()
+				print("on attend pour " + str(wait) + " seconds")
+				time.sleep(wait)
+			empty_result = list()
+			return empty_result
 		 
 def utf8len(s):
 	return len(s.encode('utf-8'))
@@ -73,6 +69,7 @@ def clean_text(text):
 	text = text.replace("\xa0", " ")
 	return text
 
+#Reformat the name of the author, which is of type Surname, Name <birth, death> in Name Surname
 def reformat_author(author):
 	name = author.replace(" ", "").split(",")
 	#to remove the date that are given with autor name
@@ -401,7 +398,7 @@ def write_pulses_creator_articles(entity, title, authors, page_number, pages, ou
 		page_number = scan_pages(input_db, entity, pages)
 	
 	pulse = "#creator " + title_to_hashtag(title) + " " + authors_to_hashtag(authors)
-	print(pulse)
+	#print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
@@ -498,7 +495,7 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 	
 	return pulses_id
 	
-# write a books info on the output database
+#write a book's info in the output database
 def write_book(results, metadata, pulses_id, output_db):
 	output_db.books.insert_one({"creator": metadata["creator"], 
 	"language": metadata["language"], 
@@ -514,7 +511,7 @@ def write_book(results, metadata, pulses_id, output_db):
 	"pulses": pulses_id
 	 })
 	return True
-
+#write an article's info in the output database
 def write_articles(results, metadata, pulses_id, output_db):
 	output_db.articles.insert_one({"authors": metadata["authors"], 
 		"journal_bid": metadata["journal_bid"], 
@@ -542,7 +539,7 @@ def process_books(input_db, output_db, token_used):
 			
 		fulltext = clean_text(fulltext)
 		fulltext_length = len(fulltext)
-		print("fulltext length:" + str(len(fulltext)))
+		#print("fulltext length:" + str(len(fulltext)))
 		
 		if fulltext_length < 950000:
 			#print(fulltext_length)
@@ -601,7 +598,7 @@ def process_articles(input_db, output_db, token_used):
 		number = article["internal_id"][-2:]
 		if number[0] == ":":
 			number = number[1]
-		#-1 to have the right index as it starts from 0 for list
+		#-1 to have the right index as it starts from 0 for lists
 		number = int(number) - 1
 		
 		journal = input_db.documents.find_one({"_id": journal_id})
@@ -652,11 +649,11 @@ def process_articles(input_db, output_db, token_used):
 def main():
 	token_hakim = 'f3238f9b8e974df09b6814de9e9de532'
 	token_marion = 'ecd8d2b438484d92a593bf8274704cae'
-	token_used = token_marion
+	token_used = token_hakim
 	
 	input_db, output_db = connect()
 	
-	#process_books(input_db, output_db, token_used)
+	process_books(input_db, output_db, token_used)
 	process_articles(input_db, output_db, token_used)
 	
 		
