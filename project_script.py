@@ -73,7 +73,11 @@ def clean_text(text):
 def reformat_author(author):
 	name = author.replace(" ", "").split(",")
 	#to remove the date that are given with autor name
-	reformated = name[1].split("<")[0]+ " " + name[0]
+	if len(name) > 1:
+		reformated = name[1].split("<")[0]+ " " + name[0]
+	else:
+		print(author)
+		reformated = name[0]
 	return reformated.replace("-", "")
 
 def entity_to_hashtag(entity):
