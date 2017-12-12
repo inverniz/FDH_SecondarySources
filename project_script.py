@@ -439,15 +439,15 @@ def write_pulses_creator_articles(entity, title, authors, page_number, pages, ou
 
 	
 def write_pulses(results, metadata, pages, output_db, input_db, type):
-"""write the pulses associated to a book or article.
+    """write the pulses associated to a book or article.
     results: the information on named entity recognition obtained from Dandelion.
     metadata: the metadata of the book or article.
     pages: the pages of the book or article.
     input_db: the database we read from.
     type: specifies if we're treating a book or an article.
-    """	
-	pulses_id = list()
-	pulse_id1 = -1
+    """
+    pulses_id = list()
+    	pulse_id1 = -1
 	pulse_id2 = -1
 	pulse_id3 = -1
 	pulse_id4 = -1
