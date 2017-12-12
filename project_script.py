@@ -2,6 +2,7 @@ import requests, urllib, string, math, json, datetime, time
 import pymongo
 from pymongo import *
 
+# return the number of seconds from now (when we call the function) until tomorrow
 def get_time_to_wait():
 	date = datetime.datetime.now()
 	hours = date.hour * 3600
@@ -72,26 +73,28 @@ def clean_text(text):
 #Reformat the name of the author, which is of type Surname, Name <birth, death> in Name Surname
 def reformat_author(author):
 	name = author.replace(" ", "").split(",")
-	#to remove the date that are given with autor name
+	#to remove the date that are given with author name
 	if len(name) > 1:
 		reformated = name[1].split("<")[0]+ " " + name[0]
 	else:
-		print(author)
 		reformated = name[0]
 	return reformated.replace("-", "")
 
+# Transform the entity in a hashtag format
 def entity_to_hashtag(entity):
 	return "#" + entity.replace(" ", "").replace("-", "")
 
+# Transform the name of the author in a hashtag format
 def author_to_hashtag(author):
 	return "#" + reformat_author(author).replace(" ", "")
 
+# Transform a list of authors into a string consituted of all authors in a hashtag format 
 def authors_to_hashtag(authors):
 	auth = ""
 	for i in range(0, len(authors)):
 		auth = auth + author_to_hashtag(authors[i]) + " "
 	return auth
-
+# Transform the title in a hashtag format
 def title_to_hashtag(title):
 	t = title.replace(":", " ")
 	t_hashtag = t.replace(" ", "_")
@@ -120,7 +123,8 @@ def scan_pages(input_db, entity, pages):
 			return page_number+1
 	
 	return -1
-		
+
+# Create the first type of pulse for entities contained in books : "entity (link_wikipedia) is present in book 'book_title' by author_name at page page_number. #entity #book_title #author"
 def write_pulse_type1(entity, title, author, page_number, pages, output_db, input_db):
 	entity_label = entity["label"]
 	entity_spot = entity["spot"]
@@ -143,6 +147,7 @@ def write_pulse_type1(entity, title, author, page_number, pages, output_db, inpu
 	
 	return pulse_id, page_number
 
+# Create the first type of pulse for entities contained in articles : "entity (link_wikipedia) is present in article 'article_title' by author(s)_name at page page_number in the volume volume_number of journal 'journal_title'. #entity #article_title #author #journal_title"
 def write_pulse_type1_articles(entity, title, author, journal_title, volume, page_number, pages, output_db, input_db):
 	entity_label = entity["label"]
 	entity_spot = entity["spot"]
@@ -151,6 +156,7 @@ def write_pulse_type1_articles(entity, title, author, journal_title, volume, pag
 	if page_number == -1:
 		page_number = scan_pages(input_db, entity, pages)
 
+	# As we can have multiple authors, we need to put them in string instead of a table 
 	authors = reformat_author(author[0])
 	for i in range(1, len(author)):
 		authors = authors + " and " + reformat_author(author[i])
@@ -167,7 +173,8 @@ def write_pulse_type1_articles(entity, title, author, journal_title, volume, pag
 	"wikipedia_resource": wikipedia_resource})
 	
 	return pulse_id, page_number
-	
+
+# Create a pulse when 2 entities are contained in the same book : "entity1 (link_wikipedia1) and entity2 (link_wikipedia2) are distance_in_page pages distant in the book 'book_title' by author_name. #entity1 #entity2 #book_title #author"
 def write_pulse_type2(entity1, entity1_page_number, entity2, title, author, pages, output_db, input_db):
 	entity1_label = entity1["label"]
 	entity1_spot = entity1["spot"]
@@ -183,7 +190,7 @@ def write_pulse_type2(entity1, entity1_page_number, entity2, title, author, page
 
 	auth = reformat_author(author)
 	
-	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  "and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + "are " + str(page_difference) + " pages distant in the book '" + title + "' by " + auth + "." 
+	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  "and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + "are " + str(page_difference) + " pages distant in the book '" + title + "' by " + auth + ". " + entity_to_hashtag(entity1_label) + " " + entity_to_hashtag(entity2_label) + " " + title_to_hashtag(title) + " " + author_to_hashtag(author)
 	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 2, 
@@ -200,6 +207,7 @@ def write_pulse_type2(entity1, entity1_page_number, entity2, title, author, page
 	
 	return pulse_id, entity2_page_number
 
+# Create a pulse when 2 entities are contained in the same article : "entity1 (link_wikipedia1) and entity2 (link_wikipedia2) are distance_in_page pages distant in the article 'article_title' by author(s)_name present in volume volume_number of journal 'journal_title'. #entity1 #entity2 #article_title #author(s) #journal_title"
 def write_pulse_type2_articles(entity1, entity1_page_number, entity2, title, author, journal_title, volume, pages, output_db, input_db):
 	entity1_label = entity1["label"]
 	entity1_spot = entity1["spot"]
@@ -217,7 +225,7 @@ def write_pulse_type2_articles(entity1, entity1_page_number, entity2, title, aut
 	
 	page_difference = math.ceil(math.fabs(entity1_page_number- entity2_page_number))
 	
-	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  "and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + "are " + str(page_difference) + " pages distant in the article '" + title + "' by " + authors + " present in volume " + volume + " of journal '" + journal_title + "'." 
+	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  "and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + "are " + str(page_difference) + " pages distant in the article '" + title + "' by " + authors + " present in volume " + volume + " of journal '" + journal_title + "'. " + entity_to_hashtag(entity1_label) + " " + entity_to_hashtag(entity2_label) + " " + title_to_hashtag(title) + " " + authors_to_hashtag(author) + " " + title_to_hashtag(journal_title)
 	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 2, 
@@ -234,14 +242,10 @@ def write_pulse_type2_articles(entity1, entity1_page_number, entity2, title, aut
 	
 	return pulse_id, entity2_page_number
 
+# Create a pulse of copresence for books, so we create a pulse when 2 entities are present on the same page of a book (here on page 42 for ex.) : #copresence #entity1 #entity2 #book_title_p42
 def write_pulses_copresence(entity1, entity1_page_number, entity2, title, pages, output_db, input_db):
 	entity1_label = entity1["label"]
-	entity1_spot = entity1["spot"]
-	entity1_wikipedia_resource = entity1["wikipedia"]
-	
 	entity2_label = entity2["label"]
-	entity2_spot = entity2["spot"]
-	entity2_wikipedia_resource = entity2["wikipedia"]
 	
 	entity2_page_number = scan_pages(input_db, entity2, pages)
 	
@@ -256,26 +260,18 @@ def write_pulses_copresence(entity1, entity1_page_number, entity2, title, pages,
 		"pulse": pulse, 
 		"entity1_name": entity1_label, 
 		"entity1_page_number": entity1_page_number, 
-		"entity1_wikipedia_resource": entity1_wikipedia_resource,
-		"reference1": entity1_spot,
 		"entity2_name": entity2_label, 
 		"entity2_page_number": entity2_page_number, 
-		"entity2_wikipedia_resource": entity2_wikipedia_resource,
-		"reference2": entity2_spot,
 		})
 	
 		return pulse_id, entity2_page_number
 	else :
 		return "", 0
 
+# Create a pulse of copresence for books, so we create a pulse when 2 entities are present in the same article : #copresence #entity1 #entity2 #article_title
 def write_pulses_copresence_articles(entity1, entity1_page_number, entity2, title, pages, output_db, input_db):
 	entity1_label = entity1["label"]
-	entity1_spot = entity1["spot"]
-	entity1_wikipedia_resource = entity1["wikipedia"]
-	
 	entity2_label = entity2["label"]
-	entity2_spot = entity2["spot"]
-	entity2_wikipedia_resource = entity2["wikipedia"]
 	
 	entity2_page_number = scan_pages(input_db, entity2, pages)
 
@@ -286,20 +282,16 @@ def write_pulses_copresence_articles(entity1, entity1_page_number, entity2, titl
 	"pulse": pulse, 
 	"entity1_name": entity1_label, 
 	"entity1_page_number": entity1_page_number, 
-	"entity1_wikipedia_resource": entity1_wikipedia_resource,
-	"reference1": entity1_spot,
 	"entity2_name": entity2_label, 
 	"entity2_page_number": entity2_page_number, 
-	"entity2_wikipedia_resource": entity2_wikipedia_resource,
-	"reference2": entity2_spot,
 	})
-	
 	return pulse_id, entity2_page_number
 
+# Create 2 different pulses.
+# First the #mention pulse, which is a pulse that says in which book and page an entity is mentionned (here p.42 for ex.) : #mention #entity #book_title_p42
+# Second the #in pulse, which is a pulse that say in which book we can find a certain page (here p.42 for ex.) : #in #book_title_p42 #book_title
 def write_pulses_mention_and_in(entity, title, page_number, pages, output_db, input_db):
 	entity_label = entity["label"]
-	entity_spot = entity["spot"]
-	wikipedia_resource = entity["wikipedia"]
 	
 	if page_number == -1:
 		page_number = scan_pages(input_db, entity, pages)
@@ -311,29 +303,21 @@ def write_pulses_mention_and_in(entity, title, page_number, pages, output_db, in
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
 	"entity_name": entity_label, 
-	"reference": entity_spot,
-	"page_number": page_number, 
-	"wikipedia_resource": wikipedia_resource})
+	"page_number": page_number})
 
 	pulse_id2 = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse2, 
 	"entity_name": entity_label, 
-	"reference": entity_spot,
-	"page_number": page_number, 
-	"wikipedia_resource": wikipedia_resource})
+	"page_number": page_number})
 	
 	return pulse_id, page_number, pulse_id2
 
+
+# Create 2 different pulses.
+# First the #mention pulse, which is a pulse that says in which article an entity is mentionned : #mention #entity #article_title
+# Second the #in pulse, which is a pulse that say in which journal we can find a certain article : #in #article_title #journal_title
 def write_pulses_mention_and_in_articles(entity, title, journal_title, volume, page_number, pages, output_db, input_db):
-	"""write a pulse concerning the authors of a book.
-    title: the title of the book.
-    authors: the authors of the article. 
-    output_db: database we write to.
-    """
-    
 	entity_label = entity["label"]
-	entity_spot = entity["spot"]
-	wikipedia_resource = entity["wikipedia"]
 	
 	if page_number == -1:
 		page_number = scan_pages(input_db, entity, pages)
@@ -345,29 +329,19 @@ def write_pulses_mention_and_in_articles(entity, title, journal_title, volume, p
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
-	"entity_name": entity_label, 
-	"reference": entity_spot,
-	"page_number": page_number, 
-	"wikipedia_resource": wikipedia_resource})
+	"entity_name": entity_label,
+	"page_number": page_number})
 
 	pulse_id2 = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse2, 
 	"entity_name": entity_label, 
-	"reference": entity_spot,
-	"page_number": page_number, 
-	"wikipedia_resource": wikipedia_resource})
+	"page_number": page_number})
 	
 	return pulse_id, page_number, pulse_id2
 
-def write_pulses_eq(entity, title, page_number, pages, output_db, input_db):
-	"""write a pulse that associate an entity to a wikipedia url.
-    entity: the entity to be associated to a wikipedia url.
-    authors: the authors of the article. 
-    output_db: database we write to.
-    """
-    
+# Create a pulse that associate an entity with a wkipedia URL : #eq #entity URL
+def write_pulses_eq(entity, page_number, pages, output_db, input_db):
 	entity_label = entity["label"]
-	entity_spot = entity["spot"]
 	wikipedia_resource = entity["wikipedia"]
 	
 	if page_number == -1:
@@ -379,22 +353,14 @@ def write_pulses_eq(entity, title, page_number, pages, output_db, input_db):
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
 	"entity_name": entity_label, 
-	"reference": entity_spot,
 	"page_number": page_number, 
 	"wikipedia_resource": wikipedia_resource})
 	
 	return pulse_id, page_number
 
+# Create a pulse that links a book and its author : #creator #book_title #author
 def write_pulses_creator(entity, title, author, page_number, pages, output_db, input_db):
-	"""write a pulse concerning the authors of a book.
-    title: the title of the book.
-    authors: the authors of the article. 
-    output_db: database we write to.
-    """
-    
 	entity_label = entity["label"]
-	entity_spot = entity["spot"]
-	wikipedia_resource = entity["wikipedia"]
 	
 	if page_number == -1:
 		page_number = scan_pages(input_db, entity, pages)
@@ -405,22 +371,13 @@ def write_pulses_creator(entity, title, author, page_number, pages, output_db, i
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
 	"entity_name": entity_label, 
-	"reference": entity_spot,
-	"page_number": page_number, 
-	"wikipedia_resource": wikipedia_resource})
+	"page_number": page_number})
 	
 	return pulse_id, page_number
 
+# Create a pulse that links an article and its author(s) : #creator #article_title #author(s)
 def write_pulses_creator_articles(entity, title, authors, page_number, pages, output_db, input_db):
-	"""write a pulse concerning the authors of an article.
-    title: the title of the article.
-    authors: the authors of the article. 
-    output_db: database we write to.
-    """	
-    
 	entity_label = entity["label"]
-	entity_spot = entity["spot"]
-	wikipedia_resource = entity["wikipedia"]
 	
 	if page_number == -1:
 		page_number = scan_pages(input_db, entity, pages)
@@ -431,23 +388,21 @@ def write_pulses_creator_articles(entity, title, authors, page_number, pages, ou
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
 	"entity_name": entity_label, 
-	"reference": entity_spot,
-	"page_number": page_number, 
-	"wikipedia_resource": wikipedia_resource})
+	"page_number": page_number})
 	
 	return pulse_id, page_number
 
 	
 def write_pulses(results, metadata, pages, output_db, input_db, type):
-    """write the pulses associated to a book or article.
-    results: the information on named entity recognition obtained from Dandelion.
-    metadata: the metadata of the book or article.
-    pages: the pages of the book or article.
-    input_db: the database we read from.
-    type: specifies if we're treating a book or an article.
-    """
-    pulses_id = list()
-    	pulse_id1 = -1
+	"""write the pulses associated to a book or article.
+	results: the information on named entity recognition obtained from Dandelion.
+	metadata: the metadata of the book or article.
+	pages: the pages of the book or article.
+	input_db: the database we read from.
+	type: specifies if we're treating a book or an article.
+	"""
+	pulses_id = list()
+	pulse_id1 = -1
 	pulse_id2 = -1
 	pulse_id3 = -1
 	pulse_id4 = -1
@@ -473,12 +428,12 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 			if page_number_entity_2 != -1:
 				pulse_id1, page_number_entity_1 = write_pulse_type1(entity_1, title, author, page_number_entity_2, pages, output_db, input_db)
 				pulse_id4, page_number_entity_4, pulse_id6 = write_pulses_mention_and_in(entity_1, title, page_number_entity_2, pages, output_db, input_db)
-				pulse_id5, page_number_entity_5 = write_pulses_eq(entity_1, title, page_number_entity_2, pages, output_db, input_db)
+				pulse_id5, page_number_entity_5 = write_pulses_eq(entity_1, page_number_entity_2, pages, output_db, input_db)
 				pulse_id7, page_number_entity_7 = write_pulses_creator(entity_1, title, author, page_number_entity_2, pages, output_db, input_db)
 			else:
 				pulse_id1, page_number_entity_1 = write_pulse_type1(entity_1, title, author, -1, pages, output_db, input_db)
 				pulse_id4, page_number_entity_4, pulse_id6 = write_pulses_mention_and_in(entity_1, title, -1, pages, output_db, input_db)
-				pulse_id5, page_number_entity_5 = write_pulses_eq(entity_1, title, -1, pages, output_db, input_db)
+				pulse_id5, page_number_entity_5 = write_pulses_eq(entity_1, -1, pages, output_db, input_db)
 				pulse_id7, page_number_entity_7 = write_pulses_creator(entity_1, title, author, -1, pages, output_db, input_db)
 
 			if index < numb_entities-1:
@@ -504,13 +459,13 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 			if page_number_entity_2 != -1:
 				pulse_id1, page_number_entity_1 = write_pulse_type1_articles(entity_1, title, author, journal_title, volume, page_number_entity_2, pages, output_db, input_db)
 				pulse_id4, page_number_entity_4, pulse_id6 = write_pulses_mention_and_in_articles(entity_1, title, journal_title, volume, page_number_entity_2, pages, output_db, input_db)
-				pulse_id5, page_number_entity_5 = write_pulses_eq(entity_1, title, page_number_entity_2, pages, output_db, input_db)
+				pulse_id5, page_number_entity_5 = write_pulses_eq(entity_1, page_number_entity_2, pages, output_db, input_db)
 				pulse_id7, page_number_entity_7 = write_pulses_creator_articles(entity_1, title, author, page_number_entity_2, pages, output_db, input_db)
 
 			else:
 				pulse_id1, page_number_entity_1 = write_pulse_type1_articles(entity_1, title, author, journal_title, volume, -1, pages, output_db, input_db)
 				pulse_id4, page_number_entity_4, pulse_id6 = write_pulses_mention_and_in_articles(entity_1, title, journal_title, volume, -1 , pages, output_db, input_db)
-				pulse_id5, page_number_entity_5 = write_pulses_eq(entity_1, title, -1, pages, output_db, input_db)
+				pulse_id5, page_number_entity_5 = write_pulses_eq(entity_1, -1, pages, output_db, input_db)
 				pulse_id7, page_number_entity_7 = write_pulses_creator_articles(entity_1, title, author, -1, pages, output_db, input_db)
 
 
@@ -531,10 +486,10 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 
 def write_book(results, metadata, pulses_id, output_db):
 	"""write a book in the database.
-    metadata: the metadata of the book.
-    pulses_id: the id of the pulses produced from this book.
-    output_db: the database we write to.
-    """
+	metadata: the metadata of the book.
+	pulses_id: the id of the pulses produced from this book.
+	output_db: the database we write to.
+	"""
 	output_db.books.insert_one({"creator": metadata["creator"], 
 	"language": metadata["language"], 
 	"img_bib2": metadata["img_bib"], 
@@ -553,10 +508,10 @@ def write_book(results, metadata, pulses_id, output_db):
 
 def write_articles(results, metadata, pulses_id, output_db):
 	"""write an article in the database.
-    metadata: the metadata of the article.
-    pulses_id: the id of the pulses produced from this article.
-    output_db: the database we write to.
-    """
+	metadata: the metadata of the article.
+	pulses_id: the id of the pulses produced from this article.
+	output_db: the database we write to.
+	"""
 	output_db.articles.insert_one({"authors": metadata["authors"], 
 		"journal_bid": metadata["journal_bid"], 
 		"journal_short_title": metadata["journal_short_title"], 
@@ -569,11 +524,11 @@ def write_articles(results, metadata, pulses_id, output_db):
 
 def process_books(input_db, output_db, token_used):
 	"""processes all books in the database.
-    input_db: the database we read from.
-    output_db: the database we write to.
-    token_used: the dandelion identifier to be used.
-    """
-    
+	input_db: the database we read from.
+	output_db: the database we write to.
+	token_used: the dandelion identifier to be used.
+	"""
+	
 	book_metadata = input_db.metadata.find({"type_document": "monograph"}, limit=150)
 	
 	for metadata in book_metadata:
@@ -593,7 +548,7 @@ def process_books(input_db, output_db, token_used):
 		#print("fulltext length:" + str(len(fulltext)))
 		
 		# if the book is short we send it in a single dandelion requests, otherwise we split the article in
-        #several dandelion requests.
+		#several dandelion requests.
 		if fulltext_length < 950000:
 			#print(fulltext_length)
 			results = dandelion_ner(text, token_used)
@@ -636,11 +591,11 @@ def process_books(input_db, output_db, token_used):
 
 def process_articles(input_db, output_db, token_used):
 	"""processes all articles in the database.
-    input_db: the database we read from.
-    output_db: the database we write to.
-    token_used: the dandelion identifier to be used.
-    """
-    
+	input_db: the database we read from.
+	output_db: the database we write to.
+	token_used: the dandelion identifier to be used.
+	"""
+	
 	articles = input_db.bibliodb_articles.find({})
    
 	for article in articles:
@@ -683,8 +638,8 @@ def process_articles(input_db, output_db, token_used):
 		fulltext_length = len(fulltext)
 		#print("fulltext length:" + str(len(fulltext)))
 
-        # if the article is short we send it in a single dandelion requests, otherwise we split the article in
-        #several dandelion requests.
+		# if the article is short we send it in a single dandelion requests, otherwise we split the article in
+		#several dandelion requests.
 		if fulltext_length < 950000:
 			results = dandelion_ner(text, token_used)
 			#print("Results: " + str(results))
@@ -714,7 +669,7 @@ def main():
 	#dandelion token to be used
 	token_hakim = 'f3238f9b8e974df09b6814de9e9de532'
 	token_marion = 'ecd8d2b438484d92a593bf8274704cae'
-	token_used = token_hakim
+	token_used = token_marion
 	
 	#connection to the two databases
 	input_db, output_db = connect()
