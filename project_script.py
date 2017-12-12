@@ -132,7 +132,7 @@ def write_pulse_type1(entity, title, author, page_number, pages, output_db, inpu
 		page_number = scan_pages(input_db, entity, pages)
 	
 	pulse = entity_label + " (" + wikipedia_resource + ") " + "is present in book '" + title + "' by " + auth + " at page " + str(page_number) + ". " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title) + " " + author_to_hashtag(author)
-	#print(pulse)
+	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
@@ -184,7 +184,7 @@ def write_pulse_type2(entity1, entity1_page_number, entity2, title, author, page
 	auth = reformat_author(author)
 	
 	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  "and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + "are " + str(page_difference) + " pages distant in the book '" + title + "' by " + auth + "." 
-	#print(pulse)
+	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 2, 
 	"pulse": pulse, 
@@ -218,7 +218,7 @@ def write_pulse_type2_articles(entity1, entity1_page_number, entity2, title, aut
 	page_difference = math.ceil(math.fabs(entity1_page_number- entity2_page_number))
 	
 	pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  "and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + "are " + str(page_difference) + " pages distant in the article '" + title + "' by " + authors + " present in volume " + volume + " of journal '" + journal_title + "'." 
-	#print(pulse)
+	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 2, 
 	"pulse": pulse, 
@@ -250,7 +250,7 @@ def write_pulses_copresence(entity1, entity1_page_number, entity2, title, pages,
 	if page_difference == 0:
 	
 		pulse = "#copresence " + entity_to_hashtag(entity1_label) + " " + entity_to_hashtag(entity2_label) + " " + title_to_hashtag(title) + "_p" + str(entity1_page_number)
-		#print(pulse)
+		print(pulse)
 		#actual writing of the pulse
 		pulse_id = output_db.pulses.insert({"type": 2, 
 		"pulse": pulse, 
@@ -280,7 +280,7 @@ def write_pulses_copresence_articles(entity1, entity1_page_number, entity2, titl
 	entity2_page_number = scan_pages(input_db, entity2, pages)
 
 	pulse = "#copresence " + entity_to_hashtag(entity1_label) + " " + entity_to_hashtag(entity2_label) + " " + title_to_hashtag(title)
-	#print(pulse)
+	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 2, 
 	"pulse": pulse, 
@@ -306,8 +306,8 @@ def write_pulses_mention_and_in(entity, title, page_number, pages, output_db, in
 	
 	pulse = "#mention " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title) + "_p" + str(page_number)
 	pulse2 = "#in " + title_to_hashtag(title) + "_p" + str(page_number) + " " + title_to_hashtag(title)
-	#print(pulse)
-	#print(pulse2)
+	print(pulse)
+	print(pulse2)
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
 	"entity_name": entity_label, 
@@ -325,6 +325,12 @@ def write_pulses_mention_and_in(entity, title, page_number, pages, output_db, in
 	return pulse_id, page_number, pulse_id2
 
 def write_pulses_mention_and_in_articles(entity, title, journal_title, volume, page_number, pages, output_db, input_db):
+	"""write a pulse concerning the authors of a book.
+    title: the title of the book.
+    authors: the authors of the article. 
+    output_db: database we write to.
+    """
+    
 	entity_label = entity["label"]
 	entity_spot = entity["spot"]
 	wikipedia_resource = entity["wikipedia"]
@@ -334,8 +340,8 @@ def write_pulses_mention_and_in_articles(entity, title, journal_title, volume, p
 	
 	pulse = "#mention " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title) 
 	pulse2 = "#in " + title_to_hashtag(title) + " " + title_to_hashtag(journal_title) + " vol." + str(volume)
-	#print(pulse)
-	#print(pulse2)
+	print(pulse)
+	print(pulse2)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
@@ -354,6 +360,12 @@ def write_pulses_mention_and_in_articles(entity, title, journal_title, volume, p
 	return pulse_id, page_number, pulse_id2
 
 def write_pulses_eq(entity, title, page_number, pages, output_db, input_db):
+	"""write a pulse that associate an entity to a wikipedia url.
+    entity: the entity to be associated to a wikipedia url.
+    authors: the authors of the article. 
+    output_db: database we write to.
+    """
+    
 	entity_label = entity["label"]
 	entity_spot = entity["spot"]
 	wikipedia_resource = entity["wikipedia"]
@@ -362,7 +374,7 @@ def write_pulses_eq(entity, title, page_number, pages, output_db, input_db):
 		page_number = scan_pages(input_db, entity, pages)
 	
 	pulse = "#eq " + entity_to_hashtag(entity_label) + " " + wikipedia_resource
-	#print(pulse)
+	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
@@ -374,6 +386,12 @@ def write_pulses_eq(entity, title, page_number, pages, output_db, input_db):
 	return pulse_id, page_number
 
 def write_pulses_creator(entity, title, author, page_number, pages, output_db, input_db):
+	"""write a pulse concerning the authors of a book.
+    title: the title of the book.
+    authors: the authors of the article. 
+    output_db: database we write to.
+    """
+    
 	entity_label = entity["label"]
 	entity_spot = entity["spot"]
 	wikipedia_resource = entity["wikipedia"]
@@ -382,7 +400,7 @@ def write_pulses_creator(entity, title, author, page_number, pages, output_db, i
 		page_number = scan_pages(input_db, entity, pages)
 	
 	pulse = "#creator " + title_to_hashtag(title) + " " + author_to_hashtag(author)
-	#print(pulse)
+	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
@@ -394,6 +412,12 @@ def write_pulses_creator(entity, title, author, page_number, pages, output_db, i
 	return pulse_id, page_number
 
 def write_pulses_creator_articles(entity, title, authors, page_number, pages, output_db, input_db):
+	"""write a pulse concerning the authors of an article.
+    title: the title of the article.
+    authors: the authors of the article. 
+    output_db: database we write to.
+    """	
+    
 	entity_label = entity["label"]
 	entity_spot = entity["spot"]
 	wikipedia_resource = entity["wikipedia"]
@@ -402,7 +426,7 @@ def write_pulses_creator_articles(entity, title, authors, page_number, pages, ou
 		page_number = scan_pages(input_db, entity, pages)
 	
 	pulse = "#creator " + title_to_hashtag(title) + " " + authors_to_hashtag(authors)
-	#print(pulse)
+	print(pulse)
 	#actual writing of the pulse
 	pulse_id = output_db.pulses.insert({"type": 1, 
 	"pulse": pulse, 
@@ -415,7 +439,13 @@ def write_pulses_creator_articles(entity, title, authors, page_number, pages, ou
 
 	
 def write_pulses(results, metadata, pages, output_db, input_db, type):
-	
+"""write the pulses associated to a book or article.
+    results: the information on named entity recognition obtained from Dandelion.
+    metadata: the metadata of the book or article.
+    pages: the pages of the book or article.
+    input_db: the database we read from.
+    type: specifies if we're treating a book or an article.
+    """	
 	pulses_id = list()
 	pulse_id1 = -1
 	pulse_id2 = -1
@@ -498,9 +528,13 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 
 	
 	return pulses_id
-	
-#write a book's info in the output database
+
 def write_book(results, metadata, pulses_id, output_db):
+	"""write a book in the database.
+    metadata: the metadata of the book.
+    pulses_id: the id of the pulses produced from this book.
+    output_db: the database we write to.
+    """
 	output_db.books.insert_one({"creator": metadata["creator"], 
 	"language": metadata["language"], 
 	"img_bib2": metadata["img_bib"], 
@@ -515,8 +549,14 @@ def write_book(results, metadata, pulses_id, output_db):
 	"pulses": pulses_id
 	 })
 	return True
-#write an article's info in the output database
+	
+
 def write_articles(results, metadata, pulses_id, output_db):
+	"""write an article in the database.
+    metadata: the metadata of the article.
+    pulses_id: the id of the pulses produced from this article.
+    output_db: the database we write to.
+    """
 	output_db.articles.insert_one({"authors": metadata["authors"], 
 		"journal_bid": metadata["journal_bid"], 
 		"journal_short_title": metadata["journal_short_title"], 
@@ -525,9 +565,16 @@ def write_articles(results, metadata, pulses_id, output_db):
 		"volume": metadata["volume"],
 		"pulses": pulses_id})
 	return True
-	
+
+
 def process_books(input_db, output_db, token_used):
-	book_metadata = input_db.metadata.find({"type_document": "monograph"}, limit=5)
+	"""processes all books in the database.
+    input_db: the database we read from.
+    output_db: the database we write to.
+    token_used: the dandelion identifier to be used.
+    """
+    
+	book_metadata = input_db.metadata.find({"type_document": "monograph"}, limit=150)
 	
 	for metadata in book_metadata:
 		bid = metadata["bid"]
@@ -545,6 +592,8 @@ def process_books(input_db, output_db, token_used):
 		fulltext_length = len(fulltext)
 		#print("fulltext length:" + str(len(fulltext)))
 		
+		# if the book is short we send it in a single dandelion requests, otherwise we split the article in
+        #several dandelion requests.
 		if fulltext_length < 950000:
 			#print(fulltext_length)
 			results = dandelion_ner(text, token_used)
@@ -586,6 +635,12 @@ def process_books(input_db, output_db, token_used):
 				previous_text = ""
 
 def process_articles(input_db, output_db, token_used):
+	"""processes all articles in the database.
+    input_db: the database we read from.
+    output_db: the database we write to.
+    token_used: the dandelion identifier to be used.
+    """
+    
 	articles = input_db.bibliodb_articles.find({})
    
 	for article in articles:
@@ -598,10 +653,13 @@ def process_articles(input_db, output_db, token_used):
 		"volume": article["volume"]}
 		#get the id of the journal containing the article
 		journal_id = article["document_id"]
+		
 		#get the place of the article in the journal
 		number = article["internal_id"][-2:]
+		
 		if number[0] == ":":
 			number = number[1]
+			
 		#-1 to have the right index as it starts from 0 for lists
 		number = int(number) - 1
 		
@@ -625,6 +683,8 @@ def process_articles(input_db, output_db, token_used):
 		fulltext_length = len(fulltext)
 		#print("fulltext length:" + str(len(fulltext)))
 
+        # if the article is short we send it in a single dandelion requests, otherwise we split the article in
+        #several dandelion requests.
 		if fulltext_length < 950000:
 			results = dandelion_ner(text, token_used)
 			#print("Results: " + str(results))
@@ -640,7 +700,7 @@ def process_articles(input_db, output_db, token_used):
 			while j < nb_lines:
 				while i < nb_lines and utf8len(text) < 950000:
 					#print("length:" + str(utf8len(text)))
-					text = text + lines[i]
+					text = text + "." + lines[i]
 					i += 1
 				#print(text)
 				results = dandelion_ner(text, token_used)
@@ -651,14 +711,17 @@ def process_articles(input_db, output_db, token_used):
 				text = ""
    
 def main():
+	#dandelion token to be used
 	token_hakim = 'f3238f9b8e974df09b6814de9e9de532'
 	token_marion = 'ecd8d2b438484d92a593bf8274704cae'
 	token_used = token_hakim
 	
+	#connection to the two databases
 	input_db, output_db = connect()
 	
+	#processing the articles in the database
 	process_books(input_db, output_db, token_used)
-	process_articles(input_db, output_db, token_used)
+	#process_articles(input_db, output_db, token_used)
 	
 		
 if __name__ == "__main__":
