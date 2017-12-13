@@ -379,10 +379,8 @@ def write_pulses_copresence_articles(entity1, entity2, title, output_db):
     return pulse_id
 
 
-def write_pulses_mention_and_in(entity, title, page_number, output_db): 
-    """Create 2 different pulses.
-    First the #mention pulse, which is a pulse that says in which book and page an entity is mentionned (here p.42 for ex.) : #mention #entity #book_title_p42
-    Second the #in pulse, which is a pulse that say in which book we can find a certain page (here p.42 for ex.) : #in #book_title_p42 #book_title
+def write_pulses_mention(entity, title, page_number, output_db): 
+    """Create the #mention pulse, which is a pulse that says in which book and page an entity is mentionned (here p.42 for ex.) : #mention #entity #book_title_p42
     entity: the entity found in the article.
     title: the title of the book.
     page_number: the number of the page where the entity first appears in the book.
@@ -391,7 +389,6 @@ def write_pulses_mention_and_in(entity, title, page_number, output_db):
     entity_label = entity["label"]
     
     pulse = "#mention " + entity_to_hashtag(entity_label) + " #in " + title_to_hashtag(title) + "_p" + str(page_number)
-    pulse2 = title_to_hashtag(title) + "_p" + str(page_number) + " #in " + title_to_hashtag(title)
     
     
     pulse_id = output_db.pulses.insert_one({"type": "book_mention_pulse", 
@@ -401,29 +398,31 @@ def write_pulses_mention_and_in(entity, title, page_number, output_db):
                                      "page_number": page_number,
                                      "created_at": get_insertion_timestamp()}).inserted_id
     
-    pulse_id2 = output_db.pulses.insert_one({"type": "book_in_pulse", 
-                                         "pulse": pulse2, 
-                                         "entity_name": entity_label, 
+    return pulse_id
+
+def write_pulses_in(title, page_number, output_db):
+    """Create the #in pulse, which is a pulse that say in which book we can find a certain page (here p.42 for ex.) : #in #book_title_p42 #book_title
+    title: the title of the book.
+    page_number: the number of the page where the entity first appears in the book.
+    output_db: the database we write to.
+    """
+    pulse = title_to_hashtag(title) + "_p" + str(page_number) + " #in " + title_to_hashtag(title)
+    
+    pulse_id = output_db.pulses.insert_one({"type": "book_in_pulse", 
+                                         "pulse": pulse,  
                                          "title": title,
                                          "page_number": page_number,
                                          "created_at": get_insertion_timestamp()}).inserted_id
+    return pulse_id
     
-    return pulse_id, pulse_id2
-
-
-def write_pulses_mention_and_in_articles(entity, title, journal_title, volume, output_db):
-    """Create 2 different pulses.
-    First the #mention pulse, which is a pulse that says in which article an entity is mentionned : #mention #entity #article_title
-    Second the #in pulse, which is a pulse that say in which journal we can find a certain article : #in #article_title #journal_title
+def write_pulses_mention_articles(entity, title, output_db):
+    """Create the #mention pulse, which is a pulse that says in which article an entity is mentionned : #mention #entity #article_title
     entity: the entity found in the article.
     title: the title of the article.
-    journal_title: the title of the journal.
-    volume: volume where to find the journal.
     output_db: the database we write to.
     """
     entity_label = entity["label"]
-    pulse = "#mention " + entity_to_hashtag(entity_label) + " #in " + title_to_hashtag(title) 
-    pulse2 = title_to_hashtag(title) + " #in " + title_to_hashtag(journal_title) + " vol." + str(volume)
+    pulse = "#mention " + entity_to_hashtag(entity_label) + " #in " + title_to_hashtag(title)
     
 
     #actual writing of the pulse
@@ -431,17 +430,32 @@ def write_pulses_mention_and_in_articles(entity, title, journal_title, volume, o
                                         "pulse": pulse, 
                                         "title": title,
                                         "created_at": get_insertion_timestamp()
-                                        }).inserted_id
+                                        }).inserted_id  
     
-    pulse_id2 = output_db.pulses.insert_one({"type": "article_in_pulse", 
-                                         "pulse": pulse2, 
+    return pulse_id
+
+def write_pulses_in_articles(title, journal_title, volume, output_db):
+    """Create the #in pulse, which is a pulse that say in which journal we can find a certain article : #in #article_title #journal_title
+    title: the title of the article.
+    journal_title: the title of the journal.
+    volume: volume where to find the journal.
+    output_db: the database we write to.
+    """
+    pulse = title_to_hashtag(title) + " #in " + title_to_hashtag(journal_title) + " vol." + str(volume)
+    
+    #actual writing of the pulse
+    pulse_id = output_db.pulses.insert_one({"type": "article_in_pulse", 
+                                         "pulse": pulse, 
                                          "title": title,
                                          "journal_title": journal_title,
                                          "volume": volume,
                                          "created_at": get_insertion_timestamp()
                                          }).inserted_id
     
-    return pulse_id, pulse_id2
+    return pulse_id
+    
+    
+    
 
 def write_pulses_eq(entity, output_db):
     """Create a pulse that associate an entity with a wikipedia URL : #eq #entity URL.
@@ -523,6 +537,17 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
     if type == "book":
         author = metadata["creator"]
         title = metadata["title"]["surface"]
+        
+        for page_id in pages:
+            page = input_db.pages.find_one({"_id": page_id})
+            page_number = int(page["printed_page_number"][0])
+            pulse_id6 = write_pulses_in(title, page_number, output_db)
+            pulses_id.append(pulse_id6)
+        
+        
+        pulse_id7 = write_pulses_creator(title, author, output_db)
+        pulses_id.append(pulse_id7)
+        
         for index, entity_1 in enumerate(results):
             pulse_id1 = -1
             if page_number_entity_2 != -1:
@@ -530,9 +555,8 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
             else:
                 pulse_id1, page_number_entity_1 = write_pulse_type1(entity_1, title, author, -1, pages, output_db, input_db)
                 
-            pulse_id4, pulse_id6 = write_pulses_mention_and_in(entity_1, title, page_number_entity_1, output_db)
+            pulse_id4  = write_pulses_mention(entity_1, title, page_number_entity_1, output_db)
             pulse_id5 = write_pulses_eq(entity_1, output_db)
-            pulse_id7 = write_pulses_creator(title, author, output_db)
             
             if index < numb_entities-1:        
                 entity_2 = results[index+1]
@@ -545,14 +569,17 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
                 pulses_id.append(pulse_id3)
             pulses_id.append(pulse_id4)
             pulses_id.append(pulse_id5)
-            pulses_id.append(pulse_id6)
-            pulses_id.append(pulse_id7)
     else:
         author = metadata["authors"]
         title = metadata["title"]
         journal_title = metadata["journal_short_title"]
         volume = metadata["volume"]
-
+        
+        pulse_id6 = write_pulses_in_articles(title, journal_title, volume, output_db)
+        pulses_id.append(pulse_id6)
+        pulse_id7 = write_pulses_creator_articles(title, author, output_db)
+        pulses_id.append(pulse_id7)
+        
         for index, entity_1 in enumerate(results):
             pulse_id1 = -1
             if page_number_entity_2 != -1:
@@ -561,9 +588,8 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
             else:
                 pulse_id1, page_number_entity_1 = write_pulse_type1_articles(entity_1, title, author, journal_title, volume, -1, pages, output_db, input_db)
             
-            pulse_id4, pulse_id6 = write_pulses_mention_and_in_articles(entity_1, title, journal_title, volume, output_db)
+            pulse_id4 = write_pulses_mention_articles(entity_1, title, output_db)
             pulse_id5 = write_pulses_eq(entity_1, output_db)
-            pulse_id7 = write_pulses_creator_articles(title, author, output_db)
 
 
             if index < numb_entities-1:
@@ -576,8 +602,6 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
             pulses_id.append(pulse_id3)
             pulses_id.append(pulse_id4)
             pulses_id.append(pulse_id5)
-            pulses_id.append(pulse_id6)
-            pulses_id.append(pulse_id7)
 
     print("number of entites found: " + str(len(results)))
     print("number of pulse written: " + str(len(pulses_id)))
@@ -785,7 +809,7 @@ def main():
     token_used = token_marion
     
     # change to true if you want to test the script, false otherwise.
-    testing = False
+    testing = True
     
     print("trying to connect to databases")
     
@@ -796,13 +820,13 @@ def main():
     
     print("start processing books")
     
-    process_books(input_db, output_db, token_used, testing)
+    #process_books(input_db, output_db, token_used, testing)
     
     print("all books processed")
     
     print("start processing articles")
     
-    #process_articles(input_db, output_db, token_used, testing)
+    process_articles(input_db, output_db, token_used, testing)
     
     print("done processing articles")
     
