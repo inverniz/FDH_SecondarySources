@@ -99,7 +99,10 @@ def entity_to_hashtag(entity):
 def author_to_hashtag(author):
     """Transform the name of the author in a hashtag format
     """
-    return "#" + reformat_author(author).replace(" ", "").replace(".", "_")
+    if author == "":
+        return "#unknown"
+    else:
+        return "#" + reformat_author(author).replace(" ", "")
 
 def authors_to_hashtag(authors):
     """Transform a list of authors into a string consituted of all authors in a hashtag format 
@@ -114,8 +117,8 @@ def title_to_hashtag(title):
     """Transform the title in a hashtag format
     """
     t = title.replace(":", " ")
-    t_hashtag = t.replace(" ", "_").replace(" ", "").replace("(", "").replace(")", "").replace(".", "_").replace("'", "_").replace("-", "_").replace('"', '_')
-    return "#" + t_hashtag
+    t_hashtag = t.replace(" ", "_").replace(" ", "").replace("(", "").replace(")", "").replace(".", "_").replace("'", "_").replace("-", "_").replace('"', '_').replace(",", "")
+    return "#" + t_hashtag.replace("___", "_")
 
 
 def connect():
@@ -168,7 +171,7 @@ def write_pulse_type1(entity, title, author, page_number, pages, output_db, inpu
         page_number = scan_pages(input_db, entity, pages)
     
     pulse = entity_label + " (" + wikipedia_resource + ") " + "is present in book '" + title + "' by " + auth + " at page " + str(page_number) + ". " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title) + " " + author_to_hashtag(author)
-    
+
     #actual writing of the pulse
     pulse_id = output_db.pulses.insert_one({"type": 1, 
     "pulse": pulse, 
@@ -210,6 +213,7 @@ def write_pulse_type1_articles(entity, title, author, journal_title, volume, pag
     
     pulse = entity_label + " (" + wikipedia_resource + ") " + "is present in article '" + title + "' by " + authors + " at page " + str(page_number) + " in the volume " + volume + " of journal '" + journal_title + "'. " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title)  + " " + authors_to_hashtag(author) + title_to_hashtag(journal_title)
     
+
     #actual writing of the pulse
     pulse_id = output_db.pulses.insert_one({"type": 1, 
     "pulse": pulse, 
@@ -251,6 +255,7 @@ def write_pulse_type2(entity1, entity1_page_number, entity2, title, author, page
     
     pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  "and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + "are " + str(page_difference) + " pages distant in the book '" + title + "' by " + auth + ". " + entity_to_hashtag(entity1_label) + " " + entity_to_hashtag(entity2_label) + " " + title_to_hashtag(title) + " " + author_to_hashtag(author)
     
+
     #actual writing of the pulse
     pulse_id = output_db.pulses.insert_one({"type": 2, 
     "pulse": pulse, 
@@ -296,6 +301,7 @@ def write_pulse_type2_articles(entity1, entity1_page_number, entity2, title, aut
     
     pulse = entity1_label + " (" + entity1_wikipedia_resource + ") " +  "and " + entity2_label + " (" + entity2_wikipedia_resource + ") " + "are " + str(page_difference) + " pages distant in the article '" + title + "' by " + authors + " present in volume " + volume + " of journal '" + journal_title + "'. " + entity_to_hashtag(entity1_label) + " " + entity_to_hashtag(entity2_label) + " " + title_to_hashtag(title) + " " + authors_to_hashtag(author) + " " + title_to_hashtag(journal_title)
     
+
     
     #actual writing of the pulse
     pulse_id = output_db.pulses.insert_one({"type": 2, 
@@ -331,6 +337,7 @@ def write_pulses_copresence(entity1, entity1_page_number, entity2, entity2_page_
     
         pulse = "#copresence " + entity_to_hashtag(entity1_label) + " " + entity_to_hashtag(entity2_label) + " " + title_to_hashtag(title) + "_p" + str(entity1_page_number)
         
+
         
         #actual writing of the pulse
         pulse_id = output_db.pulses.insert_one({"type": "book_copresence_pulse", 
@@ -359,6 +366,7 @@ def write_pulses_copresence_articles(entity1, entity2, title, output_db):
 
     pulse = "#copresence " + entity_to_hashtag(entity1_label) + " " + entity_to_hashtag(entity2_label) + " " + title_to_hashtag(title)
     
+
     #actual writing of the pulse
     pulse_id = output_db.pulses.insert_one({"type": "article_copresence_pulse", 
     "pulse": pulse, 
@@ -382,8 +390,9 @@ def write_pulses_mention_and_in(entity, title, page_number, output_db):
     """  
     entity_label = entity["label"]
     
-    pulse = "#mention " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title) + "_p" + str(page_number)
-    pulse2 = "#in " + title_to_hashtag(title) + "_p" + str(page_number) + " " + title_to_hashtag(title)
+    pulse = "#mention " + entity_to_hashtag(entity_label) + " #in " + title_to_hashtag(title) + "_p" + str(page_number)
+    pulse2 = title_to_hashtag(title) + "_p" + str(page_number) + " #in " + title_to_hashtag(title)
+    
     
     pulse_id = output_db.pulses.insert_one({"type": "book_mention_pulse", 
                                      "pulse": pulse, 
@@ -413,9 +422,10 @@ def write_pulses_mention_and_in_articles(entity, title, journal_title, volume, o
     output_db: the database we write to.
     """
     entity_label = entity["label"]
-    pulse = "#mention " + entity_to_hashtag(entity_label) + " " + title_to_hashtag(title) 
-    pulse2 = "#in " + title_to_hashtag(title) + " " + title_to_hashtag(journal_title) + " vol." + str(volume)
+    pulse = "#mention " + entity_to_hashtag(entity_label) + " #in " + title_to_hashtag(title) 
+    pulse2 = title_to_hashtag(title) + " #in " + title_to_hashtag(journal_title) + " vol." + str(volume)
     
+
     #actual writing of the pulse
     pulse_id = output_db.pulses.insert_one({"type": "article_mention_pulse", 
                                         "pulse": pulse, 
@@ -443,6 +453,7 @@ def write_pulses_eq(entity, output_db):
     
     pulse = "#eq " + entity_to_hashtag(entity_label) + " " + wikipedia_resource
     
+
     #actual writing of the pulse
     pulse_id = output_db.pulses.insert_one({"type": "entity_eq_pulse", 
                                         "pulse": pulse, 
@@ -460,7 +471,6 @@ def write_pulses_creator(title, authors, output_db):
     """
     
     pulse = "#creator " + title_to_hashtag(title) + " " + author_to_hashtag(authors)
-    
     #actual writing of the pulse
     pulse_id = output_db.pulses.insert_one({"type": "creator_pulse", 
                                         "pulse": pulse, 
@@ -775,7 +785,7 @@ def main():
     token_used = token_marion
     
     # change to true if you want to test the script, false otherwise.
-    testing = True
+    testing = False
     
     print("trying to connect to databases")
     
@@ -792,7 +802,7 @@ def main():
     
     print("start processing articles")
     
-    process_articles(input_db, output_db, token_used, testing)
+    #process_articles(input_db, output_db, token_used, testing)
     
     print("done processing articles")
     
