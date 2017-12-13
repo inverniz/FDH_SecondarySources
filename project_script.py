@@ -99,7 +99,7 @@ def entity_to_hashtag(entity):
 def author_to_hashtag(author):
     """Transform the name of the author in a hashtag format
     """
-    return "#" + reformat_author(author).replace(" ", "")
+    return "#" + reformat_author(author).replace(" ", "").replace(".", "_")
 
 def authors_to_hashtag(authors):
     """Transform a list of authors into a string consituted of all authors in a hashtag format 
@@ -114,7 +114,7 @@ def title_to_hashtag(title):
     """Transform the title in a hashtag format
     """
     t = title.replace(":", " ")
-    t_hashtag = t.replace(" ", "_")
+    t_hashtag = t.replace(" ", "_").replace(" ", "").replace("(", "").replace(")", "").replace(".", "_").replace("'", "_").replace("-", "_").replace('"', '_')
     return "#" + t_hashtag
 
 
