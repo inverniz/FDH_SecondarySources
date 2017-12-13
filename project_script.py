@@ -3,11 +3,13 @@ from pymongo import MongoClient
 
 
 def get_insertion_timestamp():
+    """return the insertion timestamp.
+    """
     date = datetime.datetime.now()
     return date
     
 def get_time_to_wait():
-    """return the number of seconds from now (when we call the function) until tomorrow
+    """return the number of seconds from now (when we call the function) until tomorrow.
     """
     date = datetime.datetime.now()
     hours = date.hour * 3600
@@ -28,8 +30,8 @@ def dandelion_ner(text, token):
     headers = {'text':text,'lang':'it','include':'types,lod,categories','epsilon':'0.3', 'token': token}
     r = requests.post(url,data=headers)
 
- #print(r.headers)
- #print(r.text)
+    #print(r.headers)
+    #print(r.text)
      
     if r.headers["content-type"] == "text/html":
         empty_result = list()
@@ -355,7 +357,7 @@ def write_pulses_copresence(entity1, entity1_page_number, entity2, entity2_page_
         return ""
 
 def write_pulses_copresence_articles(entity1, entity2, title, output_db):
-    """Create a pulse of copresence for books, so we create a pulse when 2 entities are present in the same article : #copresence #entity1 #entity2 #article_title
+    """Create a pulse of copresence for article, so we create a pulse when 2 entities are present in the same article : #copresence #entity1 #entity2 #article_title
     entity1: the first entity which is present in the article.
     entity2: the second entity that is present in the article.
     title: the title of the article.
@@ -538,13 +540,6 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
         author = metadata["creator"]
         title = metadata["title"]["surface"]
         
-        for page_id in pages:
-            page = input_db.pages.find_one({"_id": page_id})
-            page_number = int(page["printed_page_number"][0])
-            pulse_id6 = write_pulses_in(title, page_number, output_db)
-            pulses_id.append(pulse_id6)
-        
-        
         pulse_id7 = write_pulses_creator(title, author, output_db)
         pulses_id.append(pulse_id7)
         
@@ -555,20 +550,23 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
             else:
                 pulse_id1, page_number_entity_1 = write_pulse_type1(entity_1, title, author, -1, pages, output_db, input_db)
                 
+                
             pulse_id4  = write_pulses_mention(entity_1, title, page_number_entity_1, output_db)
             pulse_id5 = write_pulses_eq(entity_1, output_db)
+            pulse_id6 = write_pulses_in(title, page_number_entity_1, output_db)
             
-            if index < numb_entities-1:        
+            if index < numb_entities-1:
                 entity_2 = results[index+1]
                 pulse_id2, page_number_entity_2  = write_pulse_type2(entity_1, page_number_entity_1, entity_2, title, author, pages, output_db, input_db)
                 pulse_id3 = write_pulses_copresence(entity_1, page_number_entity_1, entity_2, page_number_entity_2, title, output_db)
+                pulses_id.append(pulse_id2)
+                if(pulse_id3 != ""):
+                    pulses_id.append(pulse_id3)
                 
             pulses_id.append(pulse_id1)
-            pulses_id.append(pulse_id2)
-            if(pulse_id3 != ""):
-                pulses_id.append(pulse_id3)
             pulses_id.append(pulse_id4)
             pulses_id.append(pulse_id5)
+            pulses_id.append(pulse_id6)
     else:
         author = metadata["authors"]
         title = metadata["title"]
@@ -593,17 +591,19 @@ def write_pulses(results, metadata, pages, output_db, input_db, type):
 
 
             if index < numb_entities-1:
-                entity_2 = results[index+1]
-                pulse_id2, page_number_entity_2  = write_pulse_type2_articles(entity_1, page_number_entity_1, entity_2, title, author, journal_title, volume, pages, output_db, input_db)
-                pulse_id3 = write_pulses_copresence_articles(entity_1, entity_2, title, output_db)
+                unprocessed_results = results[index+1:]
+                for entity_2 in unprocessed_results:  
+                    pulse_id2, page_number_entity_2  = write_pulse_type2_articles(entity_1, page_number_entity_1, entity_2, title, author, journal_title, volume, pages, output_db, input_db)
+                    pulse_id3 = write_pulses_copresence_articles(entity_1, entity_2, title, output_db)
+                    pulses_id.append(pulse_id2)
+                    if(pulse_id3 != ""):
+                        pulses_id.append(pulse_id3)
                 
             pulses_id.append(pulse_id1)
-            pulses_id.append(pulse_id2)
-            pulses_id.append(pulse_id3)
             pulses_id.append(pulse_id4)
             pulses_id.append(pulse_id5)
 
-    print("number of entites found: " + str(len(results)))
+    print("number of entites found: " + str(numb_entities))
     print("number of pulse written: " + str(len(pulses_id)))
     
     return pulses_id
@@ -801,15 +801,12 @@ def process_articles(input_db, output_db, token_used, testing):
                 write_articles(results, metadata, pulses_id, output_db)
                 j = i
                 text = ""
-   
-def main():
+
+def test():
     #dandelion token to be used
     token_hakim = 'f3238f9b8e974df09b6814de9e9de532'
     token_marion = 'ecd8d2b438484d92a593bf8274704cae'
-    token_used = token_marion
-    
-    # change to true if you want to test the script, false otherwise.
-    testing = True
+    token_used = token_hakim
     
     print("trying to connect to databases")
     
@@ -820,13 +817,40 @@ def main():
     
     print("start processing books")
     
-    #process_books(input_db, output_db, token_used, testing)
+    process_books(input_db, output_db, token_used, True)
     
     print("all books processed")
     
     print("start processing articles")
     
-    process_articles(input_db, output_db, token_used, testing)
+    process_articles(input_db, output_db, token_used, True)
+    
+    print("done processing articles")
+    
+    print("script ended succesfully")
+    
+def main():
+    #dandelion token to be used
+    token_hakim = 'f3238f9b8e974df09b6814de9e9de532'
+    token_marion = 'ecd8d2b438484d92a593bf8274704cae'
+    token_used = token_hakim
+    
+    print("trying to connect to databases")
+    
+    #connection to the two databases
+    input_db, output_db = connect()
+    
+    print("connection established")
+    
+    print("start processing books")
+    
+    process_books(input_db, output_db, token_used, False)
+    
+    print("all books processed")
+    
+    print("start processing articles")
+    
+    process_articles(input_db, output_db, token_used, False)
     
     print("done processing articles")
     
